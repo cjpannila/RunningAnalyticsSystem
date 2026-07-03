@@ -65,7 +65,7 @@ public class UserController {
         return userService.loadUserByUsername("Chinthana", "Pannila");
     }
 
-    @PostMapping(value = "/authenticate")
+    @GetMapping(value = "/authenticate")
     public ResponseEntity<?> authenticate(@RequestParam String code) {
         try {
             logger.info("Authenticating with Strava code");
@@ -120,7 +120,9 @@ public class UserController {
                     "message", "User authenticated and saved successfully",
                     "userId", savedUser.getUserId(),
                     "firstname", savedUser.getFirstname(),
-                    "lastname", savedUser.getLastname()
+                    "lastname", savedUser.getLastname(),
+                    "city", savedUser.getCity(),
+                    "country", savedUser.getCountry()
             ));
 
         } catch (Exception e) {
