@@ -14,6 +14,9 @@ CREATE TABLE users (
     access_token TEXT,
     refresh_token TEXT,
     token_expires_at BIGINT,
+    city VARCHAR(100),
+    country VARCHAR(100),
+    sex CHAR(1),
     club_id INT REFERENCES clubs(club_id)
 );
 

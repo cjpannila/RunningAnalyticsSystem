@@ -27,6 +27,15 @@ public class User {
     @Column(name = "lastname", length = 50)
     private String lastname;
 
+    @Column(name = "city", length = 100)
+    private String city;
+
+    @Column(name = "country", length = 100)
+    private String country;
+
+    @Column(name = "sex", length = 1)
+    private String sex;
+
     @Column(name = "access_token", columnDefinition = "TEXT")
     private String accessToken;
 
