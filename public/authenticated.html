@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Success - Running Analytics System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #FC4C02 0%, #e63c00 100%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            color: white !important;
+            text-decoration: none;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.3s ease;
+        }
+        .navbar-brand:hover {
+            opacity: 0.85;
+            color: white !important;
+        }
+        .navbar-brand i {
+            font-size: 1.3rem;
+        }
+        .navbar-text {
+            color: white !important;
+        }
+        .container-top {
+            margin-top: 100px;
+            margin-bottom: 50px;
+        }
+        .success-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .success-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .success-icon {
+            font-size: 4rem;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+        .success-header h2 {
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .success-header p {
+            color: #666;
+            font-size: 1.05rem;
+        }
+        .user-details {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+            min-width: 120px;
+        }
+        .detail-value {
+            color: #333;
+            text-align: right;
+            flex: 1;
+        }
+        .btn-custom {
+            padding: 10px 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #FC4C02 0%, #ff6b35 100%);
+            color: white;
+            margin-right: 10px;
+        }
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(252, 76, 2, 0.3);
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+        }
+        .spinner-border {
+            width: 50px;
+            height: 50px;
+        }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #f5c6cb;
+        }
+        footer {
+            background: #333;
+            color: #aaa;
+            padding: 40px 20px 20px;
+            text-align: center;
+            margin-top: 60px;
+            font-size: 0.9rem;
+        }
+        footer a {
+            color: #FC4C02;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        footer a:hover {
+            color: #ff6b35;
+        }
+        .footer-divider {
+            color: #555;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand" href="index.html">
+            <i class="bi bi-arrow-left"></i>
+            Back to Home
+        </a>
+        <span class="navbar-text ms-auto">
+            <i class="bi bi-check-circle"></i>
+            Authentication Success
+        </span>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<div class="container container-top">
+    <div id="loadingSpinner" class="loading-spinner">
+        <div>
+            <div class="spinner-border text-warning" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Processing authentication...</p>
+        </div>
+    </div>
+
+    <div id="successContent" style="display: none;">
+        <div class="success-container">
+            <div class="success-header">
+                <div class="success-icon">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <h2>Welcome!</h2>
+                <p>Your account has been successfully authenticated</p>
+            </div>
+
+            <div class="user-details">
+                <h5 style="margin-bottom: 20px; color: #333; font-weight: 600;">
+                    <i class="bi bi-person-circle" style="color: #FC4C02; margin-right: 10px;"></i>
+                    User Details
+                </h5>
+                <div class="detail-row">
+                    <span class="detail-label">User ID:</span>
+                    <span class="detail-value" id="userId">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">First Name:</span>
+                    <span class="detail-value" id="firstName">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Last Name:</span>
+                    <span class="detail-value" id="lastName">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">City:</span>
+                    <span class="detail-value" id="city">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Country:</span>
+                    <span class="detail-value" id="country">-</span>
+                </div>
+            </div>
+
+            <div class="alert alert-info" role="alert">
+                <i class="bi bi-info-circle me-2"></i>
+                Your account has been saved to our database. You can now access your dashboard to view your running analytics and manage your profile.
+            </div>
+
+            <div class="btn-group">
+                <a href="users.html" target="_blank" class="btn-custom btn-primary-custom">
+                    <i class="bi bi-speedometer2"></i>
+                    View Dashboard
+                </a>
+                <a href="index.html" class="btn-custom" style="background: white; color: #FC4C02; border: 2px solid #FC4C02;">
+                    <i class="bi bi-house"></i>
+                    Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="errorContent" style="display: none;">
+        <div class="success-container">
+            <div class="error-message">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Authentication Failed</strong>
+                <p id="errorMessage" style="margin-top: 10px; margin-bottom: 0;"></p>
+            </div>
+            <div class="btn-group">
+                <a href="index.html" class="btn-custom btn-primary-custom">
+                    <i class="bi bi-house"></i>
+                    Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <p style="margin: 0;">
+            <strong>Running Analytics System</strong>
+            <span class="footer-divider">•</span>
+            MSc Research Project
+        </p>
+        <p style="margin-top: 15px; margin-bottom: 0; font-size: 0.85rem;">
+            &copy; 2026 All rights reserved. | Chinthana Pannila
+        </p>
+    </div>
+</footer>
+
+<script>
+    // Get userId or error from URL query parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+    const errorParam = urlParams.get('error');
+
+    if (errorParam) {
+        showError(decodeURIComponent(errorParam));
+    } else if (userId) {
+        displayUserDetails(userId);
+    } else {
+        showError('No user ID provided. Please try the authentication process again.');
+    }
+
+    function displayUserDetails(userId) {
+        fetch(`/runanalytics/api/users`)
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to fetch users');
+                return response.json();
+            })
+            .then(users => {
+                const user = users.find(u => u.userId == userId);
+                if (user) {
+                    document.getElementById('userId').textContent = user.userId;
+                    document.getElementById('firstName').textContent = user.firstname || '-';
+                    document.getElementById('lastName').textContent = user.lastname || '-';
+                    document.getElementById('city').textContent = user.city || '-';
+                    document.getElementById('country').textContent = user.country || '-';
+
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                    document.getElementById('successContent').style.display = 'block';
+                } else {
+                    showError('User details could not be found. Please contact support.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to load user details: ' + error.message);
+            });
+    }
+
+    function showError(message) {
+        document.getElementById('loadingSpinner').style.display = 'none';
+        document.getElementById('errorContent').style.display = 'block';
+        document.getElementById('errorMessage').textContent = message;
+    }
+</script>
+
+</body>
+</html>
+

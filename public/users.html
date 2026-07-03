@@ -71,6 +71,26 @@
         table tbody tr {
             vertical-align: middle;
         }
+        footer {
+            background: #333;
+            color: #aaa;
+            padding: 40px 20px 20px;
+            text-align: center;
+            margin-top: 60px;
+            font-size: 0.9rem;
+        }
+        footer a {
+            color: #FC4C02;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        footer a:hover {
+            color: #ff6b35;
+        }
+        .footer-divider {
+            color: #555;
+            margin: 0 5px;
+        }
     </style>
 </head>
 <body>
@@ -283,6 +303,20 @@
         document.getElementById('successAlert').style.display = 'none';
     }
 </script>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <p style="margin: 0;">
+            <strong>Running Analytics System</strong>
+            <span class="footer-divider">•</span>
+            MSc Research Project
+        </p>
+        <p style="margin-top: 15px; margin-bottom: 0; font-size: 0.85rem;">
+            &copy; 2026 All rights reserved. | Chinthana Pannila
+        </p>
+    </div>
+</footer>
 
 </body>
 </html>
