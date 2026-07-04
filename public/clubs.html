@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clubs - Running Analytics System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #FC4C02 0%, #e63c00 100%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            color: white !important;
+            text-decoration: none;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.3s ease;
+        }
+        .navbar-brand:hover {
+            opacity: 0.85;
+            color: white !important;
+        }
+        .navbar-brand i {
+            font-size: 1.3rem;
+        }
+        .navbar-text {
+            color: white !important;
+        }
+        .container-top {
+            margin-top: 100px;
+            margin-bottom: 50px;
+        }
+        h1 {
+            color: #FC4C02;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+        .table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 50px 20px;
+        }
+        .error-alert {
+            display: none;
+        }
+        .success-alert {
+            display: none;
+        }
+        table tbody tr {
+            vertical-align: middle;
+        }
+        .badge-sport {
+            background: #FC4C02;
+            color: white;
+        }
+        footer {
+            background: #333;
+            color: #aaa;
+            padding: 40px 20px 20px;
+            text-align: center;
+            margin-top: 60px;
+            font-size: 0.9rem;
+        }
+        footer a {
+            color: #FC4C02;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        footer a:hover {
+            color: #ff6b35;
+        }
+        .footer-divider {
+            color: #555;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand" href="users.html">
+            <i class="bi bi-arrow-left"></i>
+            Back to Runners Details
+        </a>
+        <span class="navbar-text ms-auto">
+            <i class="bi bi-people"></i>
+            Clubs
+        </span>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<div class="container container-top">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Your Running Clubs</h1>
+        </div>
+    </div>
+
+    <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        View all running clubs you're a member of on Strava.
+    </div>
+
+    <div id="errorAlert" class="alert alert-danger error-alert" role="alert"></div>
+    <div id="successAlert" class="alert alert-success success-alert" role="alert"></div>
+
+    <div class="table-container">
+        <div id="loadingSpinner" class="loading-spinner">
+            <div class="spinner-border text-warning" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3">Loading clubs...</p>
+        </div>
+
+        <table id="clubsTable" class="table table-striped table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Club ID</th>
+                    <th>Name</th>
+                    <th>Sport Type</th>
+                    <th>City</th>
+                    <th>Country</th>
+                    <th>Members</th>
+                    <th>Access</th>
+                </tr>
+            </thead>
+            <tbody id="clubsTableBody">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <p style="margin: 0;">
+            <strong>Running Analytics System</strong>
+            <span class="footer-divider">•</span>
+            MSc Research Project
+        </p>
+        <p style="margin-top: 15px; margin-bottom: 0; font-size: 0.85rem;">
+            &copy; 2026 All rights reserved. | Chinthana Pannila
+        </p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    const API_BASE = "/runanalytics/api";
+
+    // Get userId from URL query parameter
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
+
+        if (userId) {
+            loadClubs(userId);
+        } else {
+            showError('No user ID provided. Please go back and try again.');
+        }
+    });
+
+    function loadClubs(userId) {
+        showLoading(true);
+        hideAlerts();
+
+        fetch(`${API_BASE}/user/clubs?userId=${userId}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to load clubs');
+                return response.json();
+            })
+            .then(clubs => {
+                populateClubsTable(clubs);
+                showLoading(false);
+                if (clubs.length === 0) {
+                    showSuccess('No clubs found for this user.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to load clubs: ' + error.message);
+                showLoading(false);
+            });
+    }
+
+    function populateClubsTable(clubs) {
+        const tbody = document.getElementById('clubsTableBody');
+        tbody.innerHTML = '';
+
+        if (clubs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No clubs found</td></tr>';
+            return;
+        }
+
+        clubs.forEach(club => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${club.clubId}</td>
+                <td><strong>${club.name}</strong></td>
+                <td><span class="badge badge-sport">${club.sportType || 'Running'}</span></td>
+                <td>${club.city || '-'}</td>
+                <td>${club.country || '-'}</td>
+                <td>${club.memberCount || '-'}</td>
+                <td>${club.isPrivate ? '<i class="bi bi-lock-fill text-danger"></i> Private' : '<i class="bi bi-unlock-fill text-success"></i> Public'}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    function showLoading(show) {
+        document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+    }
+
+    function showError(message) {
+        const alert = document.getElementById('errorAlert');
+        alert.textContent = message;
+        alert.style.display = 'block';
+    }
+
+    function showSuccess(message) {
+        const alert = document.getElementById('successAlert');
+        alert.textContent = message;
+        alert.style.display = 'block';
+        setTimeout(() => {
+            alert.style.display = 'none';
+        }, 3000);
+    }
+
+    function hideAlerts() {
+        document.getElementById('errorAlert').style.display = 'none';
+        document.getElementById('successAlert').style.display = 'none';
+    }
+</script>
+
+</body>
+</html>
+

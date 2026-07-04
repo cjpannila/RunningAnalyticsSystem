@@ -4,7 +4,13 @@ CREATE DATABASE RunAnalytics;
 CREATE TABLE clubs (
     club_id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    description TEXT
+    city VARCHAR(100),
+    country VARCHAR(100),
+    sport_type VARCHAR(50),
+    private BOOLEAN,
+    member_count INTEGER,
+    profile_image_url TEXT,
+    cover_photo_url TEXT
 );
 
 CREATE TABLE users (
@@ -16,8 +22,16 @@ CREATE TABLE users (
     token_expires_at BIGINT,
     city VARCHAR(100),
     country VARCHAR(100),
-    sex CHAR(1),
-    club_id INT REFERENCES clubs(club_id)
+    sex CHAR(1)
+);
+
+CREATE TABLE user_clubs (
+    user_id BIGINT NOT NULL,
+    club_id BIGINT NOT NULL,
+    created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, club_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (club_id) REFERENCES clubs(club_id) ON DELETE CASCADE
 );
 
 CREATE TABLE activities (
