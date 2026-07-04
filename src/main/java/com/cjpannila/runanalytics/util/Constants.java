@@ -9,4 +9,6 @@ public class Constants {
 
     // Strava OAuth
     public static final String GRANT_TYPE = "authorization_code";
+    //Strava API
+    public static final String API_ATHLETE_CLUBS = "/athlete/clubs";
 }

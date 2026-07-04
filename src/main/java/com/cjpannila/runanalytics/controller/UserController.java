@@ -12,16 +12,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 
 @RestController
 @RequestMapping("/api")
@@ -120,13 +117,74 @@ public class UserController {
                     "message", "User authenticated and saved successfully",
                     "userId", savedUser.getUserId(),
                     "firstname", savedUser.getFirstname(),
-                    "lastname", savedUser.getLastname()
+                    "lastname", savedUser.getLastname(),
+                    "city", savedUser.getCity(),
+                    "country", savedUser.getCountry()
             ));
 
         } catch (Exception e) {
             logger.error("Error during Strava authentication", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Authentication failed: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping(value = "/page/authenticate")
+    public RedirectView authenticateViaPage(@RequestParam String code) {
+        try {
+            logger.info("Authenticating with Strava code");
+
+            // Create token request
+            StravaTokenRequest tokenRequest = StravaTokenRequest.builder()
+                    .client_id(stravaClientId)
+                    .client_secret(stravaClientSecret)
+                    .code(code)
+                    .grant_type(Constants.GRANT_TYPE)
+                    .build();
+
+            // Call Strava token endpoint
+            StravaTokenResponse tokenResponse = restTemplate.postForObject(
+                    stravaTokenUrl,
+                    tokenRequest,
+                    StravaTokenResponse.class
+            );
+
+            if (tokenResponse == null || tokenResponse.getAthlete() == null) {
+                logger.error("Invalid response from Strava");
+                return new RedirectView("/runanalytics/authenticated.html?error=Invalid response from Strava");
+            }
+
+            // Create or update user
+            Long athleteId = tokenResponse.getAthlete().getId();
+            User user = userRepository.findById(athleteId)
+                    .orElseGet(() -> User.builder()
+                            .userId(athleteId)
+                            .firstname(tokenResponse.getAthlete().getFirstname())
+                            .lastname(tokenResponse.getAthlete().getLastname())
+                            .city(tokenResponse.getAthlete().getCity())
+                            .country(tokenResponse.getAthlete().getCountry())
+                            .sex(tokenResponse.getAthlete().getSex())
+                            .build()
+                    );
+
+            // Update token and profile details
+            user.setAccessToken(tokenResponse.getAccessToken());
+            user.setRefreshToken(tokenResponse.getRefreshToken());
+            user.setTokenExpiresAt(tokenResponse.getExpiresAt());
+            user.setCity(tokenResponse.getAthlete().getCity());
+            user.setCountry(tokenResponse.getAthlete().getCountry());
+            user.setSex(tokenResponse.getAthlete().getSex());
+
+            // Save user to database
+            User savedUser = userRepository.save(user);
+            logger.info("User saved successfully: {} {}", savedUser.getFirstname(), savedUser.getLastname());
+
+            // Redirect to success page with userId
+            return new RedirectView("/runanalytics/authenticated.html?userId=" + savedUser.getUserId());
+
+        } catch (Exception e) {
+            logger.error("Error during Strava authentication", e);
+            return new RedirectView("/runanalytics/authenticated.html?error=Authentication failed: " + e.getMessage());
         }
     }
 
