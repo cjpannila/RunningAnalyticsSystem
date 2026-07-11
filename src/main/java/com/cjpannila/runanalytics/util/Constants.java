@@ -11,4 +11,5 @@ public class Constants {
     public static final String GRANT_TYPE = "authorization_code";
     //Strava API
     public static final String API_ATHLETE_CLUBS = "/athlete/clubs";
+    public static final String API_ATHLETE_ACTIVITIES = "/athlete/activities";
 }

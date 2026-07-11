@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ClubDto {
+public class UserClubDto {
     private Long clubId;
     private String name;
     private String sportType;

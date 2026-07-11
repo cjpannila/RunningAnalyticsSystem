@@ -1,6 +1,6 @@
 package com.cjpannila.runanalytics.controller;
 
-import com.cjpannila.runanalytics.UserService;
+import com.cjpannila.runanalytics.service.UserService;
 import com.cjpannila.runanalytics.dto.StravaTokenRequest;
 import com.cjpannila.runanalytics.dto.StravaTokenResponse;
 import com.cjpannila.runanalytics.entities.User;

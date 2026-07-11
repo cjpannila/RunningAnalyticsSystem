@@ -1,4 +1,4 @@
-package com.cjpannila.runanalytics;
+package com.cjpannila.runanalytics.service;
 
 import com.cjpannila.runanalytics.dto.StravaTokenResponse;
 import com.cjpannila.runanalytics.entities.User;

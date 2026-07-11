@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activities - Running Analytics System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --brand: #FC4C02;
+            --brand-dark: #e63c00;
+            --bg: #f5f7fb;
+            --ink: #1f2937;
+            --muted: #6b7280;
+            --panel: #ffffff;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            background:
+                linear-gradient(180deg, rgba(252, 76, 2, 0.05) 0%, rgba(255,255,255,0) 220px),
+                var(--bg);
+            color: var(--ink);
+        }
+        .navbar {
+            background: linear-gradient(135deg, #FC4C02 0%, #e63c00 100%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            color: white !important;
+            text-decoration: none;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.3s ease;
+        }
+        .navbar-brand:hover {
+            opacity: 0.85;
+            color: white !important;
+        }
+        .navbar-brand i {
+            font-size: 1.3rem;
+        }
+        .navbar-text {
+            color: white !important;
+        }
+        .container-top {
+            margin-top: 100px;
+            margin-bottom: 50px;
+        }
+        .page-title {
+            color: var(--brand);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+        .page-subtitle { color: var(--muted); margin-bottom: 0; }
+        .panel {
+            background: var(--panel);
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            border-radius: 18px;
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        }
+        .panel-soft { padding: 20px; }
+        .loading-spinner, .error-alert, .success-alert { display: none; }
+        .btn-sync {
+            background-color: var(--brand);
+            border-color: var(--brand);
+            color: white;
+            font-weight: 600;
+        }
+        .btn-sync:hover { background-color: var(--brand-dark); border-color: var(--brand-dark); color: white; }
+        .kpi-card {
+            background: linear-gradient(180deg, #fff 0%, #fff8f5 100%);
+            border: 1px solid rgba(252, 76, 2, 0.12);
+            border-radius: 16px;
+            padding: 18px 20px;
+            height: 100%;
+        }
+        .kpi-label { color: var(--muted); font-size: 0.88rem; margin-bottom: 6px; }
+        .kpi-value { font-size: 1.55rem; font-weight: 800; line-height: 1.1; }
+        .kpi-icon {
+            width: 40px; height: 40px; border-radius: 12px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(252, 76, 2, 0.12); color: var(--brand);
+            font-size: 1.15rem;
+        }
+        .toolbar {
+            display: flex;
+            gap: 0.5rem;;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .toolbar .form-control, .toolbar .form-select { min-width: 220px; }
+        table thead th {
+            white-space: nowrap;
+            vertical-align: middle;
+            background: #f8fafc;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        .sort-btn {
+            background: transparent;
+            border: 0;
+            padding: 0;
+            font-weight: 700;
+            color: var(--ink);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .sort-indicator { color: var(--muted); font-size: 0.82rem; }
+        table tbody tr { vertical-align: middle; }
+        table tbody tr:hover { background: #fffaf7; }
+        .numeric {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        .mono {
+            font-family: 'Courier New', monospace;
+            font-variant-numeric: tabular-nums;
+        }
+        .badge-activity {
+            background: rgba(252, 76, 2, 0.12);
+            color: var(--brand);
+            border: 1px solid rgba(252, 76, 2, 0.18);
+        }
+        .empty-state {
+            padding: 28px 16px;
+            text-align: center;
+            color: var(--muted);
+        }
+        .pagination-info { color: var(--muted); font-size: 0.92rem; }
+        footer {
+            background: #222;
+            color: #aaa;
+            padding: 40px 20px 20px;
+            text-align: center;
+            margin-top: 60px;
+            font-size: 0.9rem;
+        }
+        .footer-divider { color: #555; margin: 0 5px; }
+        @media (max-width: 768px) {
+            .container-top { margin-top: 95px; }
+            .toolbar .form-control, .toolbar .form-select { min-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand" href="users.html">
+            <i class="bi bi-arrow-left"></i>
+            Back to Runners Details
+        </a>
+        <span class="navbar-text ms-auto">
+            <i class="bi bi-activity"></i>
+            Activities
+        </span>
+    </div>
+</nav>
+<div class="container container-top">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="page-title">User Activities</h1>
+        </div>
+    </div>
+
+    <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        Click <strong>Sync Activities</strong> to retrieve Strava records, save them into the database, and then view all stored rows below.
+    </div>
+
+    <div id="errorAlert" class="alert alert-danger error-alert" role="alert"></div>
+    <div id="successAlert" class="alert alert-success success-alert" role="alert"></div>
+
+	<table class="table table-bordered table-sm">
+		<tbody>
+		<tr>
+			<th style="width: 25%;">Activities</th>
+			<td id="kpiActivities">0</td>
+		</tr>
+		<tr>
+			<th>Distance</th>
+			<td id="kpiDistance">0.0 km</td>
+		</tr>
+		<tr>
+			<th>Moving Time</th>
+			<td id="kpiMovingTime">0h 0m 0s</td>
+		</tr>
+		<tr>
+			<th>Latest</th>
+			<td id="kpiLatest">—</td>
+		</tr>
+		</tbody>
+	</table>
+
+    <div class="panel panel-soft mb-4">
+        <div class="toolbar">
+            <div class="d-flex gap-2 flex-wrap">
+                <button id="syncBtn" class="btn btn-sync" onclick="syncActivities()">
+                    <i class="bi bi-cloud-download me-1"></i> Sync Activities
+                </button>
+                <button class="btn btn-outline-secondary" onclick="loadSavedActivities()">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                </button>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <label for="searchInput">Search activities</label>
+                <input id="searchInput" type="search" placeholder="Search name, type, device, start time" size="35" oninput="applyFilters()">
+                <label class="visually-hidden" for="pageSizeSelect">Rows per page</label>
+                <select id="pageSizeSelect" onchange="changePageSize()">
+                    <option value="5">5 / page</option>
+                    <option value="10" selected>10 / page</option>
+                    <option value="25">25 / page</option>
+                    <option value="50">50 / page</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-soft">
+        <div id="loadingSpinner" class="loading-spinner text-center py-5">
+            <output class="spinner-border text-warning" aria-label="Loading"></output>
+            <p class="mt-3 mb-0">Loading activities...</p>
+        </div>
+
+        <div class="table-responsive">
+            <table id="activitiesTable" class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th><button class="sort-btn" onclick="sortBy('activityName')">Name <span class="sort-indicator" id="sort-activityName"></span></button></th>
+                    <th><button class="sort-btn" onclick="sortBy('activityType')">Type <span class="sort-indicator" id="sort-activityType"></span></button></th>
+                    <th><button class="sort-btn" onclick="sortBy('startTime')">Start Time <span class="sort-indicator" id="sort-startTime"></span></button></th>
+                    <th class="numeric"><button class="sort-btn" onclick="sortBy('distanceM')">Distance (Km) <span class="sort-indicator" id="sort-distanceM"></span></button></th>
+                    <th class="numeric"><button class="sort-btn" onclick="sortBy('movingTimeS')">Moving Time <span class="sort-indicator" id="sort-movingTimeS"></span></button></th>
+                    <th class="numeric"><button class="sort-btn" onclick="sortBy('elapsedTimeS')">Elapsed Time <span class="sort-indicator" id="sort-elapsedTimeS"></span></button></th>
+                    <th class="numeric"><button class="sort-btn" onclick="sortBy('avgSpeedMps')">Avg Speed (Km/h) <span class="sort-indicator" id="sort-avgSpeedMps"></span></button></th>
+                    <th class="numeric"><button class="sort-btn" onclick="sortBy('maxSpeedMps')">Max Speed (Km/h) <span class="sort-indicator" id="sort-maxSpeedMps"></span></button></th>
+                    <th class="numeric"><button class="sort-btn" onclick="sortBy('elevationGainM')">Elevation Gain (m) <span class="sort-indicator" id="sort-elevationGainM"></span></button></th>
+                    <th class="numeric"><button class="sort-btn" onclick="sortBy('avgHeartrateBpm')">Avg HR <span class="sort-indicator" id="sort-avgHeartrateBpm"></span></button></th>
+                    <th class="numeric"><button class="sort-btn" onclick="sortBy('maxHeartrateBpm')">Max HR <span class="sort-indicator" id="sort-maxHeartrateBpm"></span></button></th>
+                    <th><button class="sort-btn" onclick="sortBy('deviceName')">Device <span class="sort-indicator" id="sort-deviceName"></span></button></th>
+                </tr>
+                </thead>
+                <tbody id="activitiesTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="d-flex flex-nowrap align-items-center justify-content-between gap-3 mt-3 pt-3 border-top">
+            <div class="pagination-info text-nowrap" id="paginationInfo">Showing 0 activities</div>
+            <div id="paginationControls" class="pagination pagination-sm flex-nowrap mb-0"></div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="container">
+        <p style="margin: 0;"><strong>Running Analytics System</strong><span class="footer-divider">•</span>MSc Research Project</p>
+        <p style="margin-top: 15px; margin-bottom: 0; font-size: 0.85rem;">&copy; 2026 All rights reserved. | Chinthana Pannila</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-REPLACE_WITH_BOOTSTRAP_JS_SRI" crossorigin="anonymous"></script>
+<script>
+    const API_BASE = "/runanalytics/api";
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+
+    let allActivities = [];
+    let filteredActivities = [];
+    let currentPage = 1;
+    let pageSize = 10;
+    let sortState = { key: 'startTime', direction: 'desc' };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('pageSizeSelect').value = String(pageSize);
+        if (userId) {
+            loadSavedActivities();
+        } else {
+            showError('No user ID provided. Please open this page from the user dashboard.');
+        }
+    });
+
+    function getUserId() {
+        return userId;
+    }
+
+    function syncActivities() {
+        const userId = getUserId();
+        if (!userId) {
+            showError('Please provide a user ID first.');
+            return;
+        }
+
+        showLoading(true);
+        hideAlerts();
+
+        fetch(`${API_BASE}/activities/sync?userId=${userId}`, { method: 'POST' })
+            .then(response => {
+                if (!response.ok) return response.json().then(data => { throw new Error(data.error || 'Failed to sync activities'); });
+                return response.json();
+            })
+            .then(data => {
+                showSuccess(`Saved ${data.savedCount || 0} activities from Strava.`);
+                loadSavedActivities();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to sync activities: ' + error.message);
+                showLoading(false);
+            });
+    }
+
+    function loadSavedActivities() {
+        const userId = getUserId();
+        if (!userId) {
+            showError('Please provide a user ID first.');
+            return;
+        }
+
+        showLoading(true);
+        hideAlerts();
+
+        fetch(`${API_BASE}/activities/saved?userId=${userId}`)
+            .then(response => {
+                if (!response.ok) return response.json().then(data => { throw new Error(data.error || 'Failed to load activities'); });
+                return response.json();
+            })
+            .then(activities => {
+                allActivities = activities || [];
+                filteredActivities = [...allActivities];
+                currentPage = 1;
+                updateDashboardCards();
+                renderActivities();
+                showLoading(false);
+                if (!activities || activities.length === 0) {
+                    showSuccess('No saved activities found for this user.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to load activities: ' + error.message);
+                showLoading(false);
+            });
+    }
+
+    function applyFilters() {
+        const search = document.getElementById('searchInput').value.trim().toLowerCase();
+        filteredActivities = allActivities.filter(activity => {
+            if (!search) return true;
+            const haystack = [
+                activity.activityName,
+                activity.activityType,
+                activity.deviceName,
+                formatDateTime(activity.startTime)
+            ].join(' ').toLowerCase();
+            return haystack.includes(search);
+        });
+        currentPage = 1;
+        renderActivities();
+    }
+
+    function changePageSize() {
+        pageSize = parseInt(document.getElementById('pageSizeSelect').value, 10) || 10;
+        currentPage = 1;
+        renderActivities();
+    }
+
+    function sortBy(key) {
+        if (sortState.key === key) {
+            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortState = { key, direction: key === 'startTime' ? 'desc' : 'asc' };
+        }
+        renderActivities();
+    }
+
+    function renderActivities() {
+        const tbody = document.getElementById('activitiesTableBody');
+        const sorted = [...filteredActivities].sort(compareActivities);
+        const total = sorted.length;
+        const totalPages = Math.max(1, Math.ceil(total / pageSize));
+        if (currentPage > totalPages) currentPage = totalPages;
+        const start = (currentPage - 1) * pageSize;
+        const pageItems = sorted.slice(start, start + pageSize);
+
+        updateSortIndicators();
+        renderPagination(total, totalPages);
+
+        if (pageItems.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="12"><div class="empty-state"><i class="bi bi-inbox fs-1 d-block mb-2"></i>No activities found</div></td></tr>';
+            document.getElementById('paginationInfo').textContent = 'Showing 0 activities';
+            return;
+        }
+
+        tbody.innerHTML = pageItems.map(activity => `
+            <tr>
+                <td><strong>${escapeHtml(activity.activityName || '-')}</strong></td>
+                <td><span class="badge badge-activity">${escapeHtml(activity.activityType || '-')}</span></td>
+                <td class="mono">${escapeHtml(formatDateTime(activity.startTime))}</td>
+                <td class="numeric">${formatNumber(activity.distanceM / 1000, 2)}</td>
+                <td class="numeric">${formatDuration(activity.movingTimeS)}</td>
+                <td class="numeric">${formatDuration(activity.elapsedTimeS)}</td>
+                <td class="numeric">${formatNumber(activity.avgSpeedMps * 60 * 60 / 1000, 2)}</td>
+                <td class="numeric">${formatNumber(activity.maxSpeedMps * 60 * 60 / 1000, 2)}</td>
+                <td class="numeric">${formatNumber(activity.elevationGainM, 0)}</td>
+                <td class="numeric">${formatNumber(activity.avgHeartrateBpm, 0)}</td>
+                <td class="numeric">${formatNumber(activity.maxHeartrateBpm, 0)}</td>
+                <td>${escapeHtml(activity.deviceName || '-')}</td>
+            </tr>
+        `).join('');
+
+        document.getElementById('paginationInfo').textContent = `Showing ${start + 1}-${Math.min(start + pageSize, total)} of ${total} activities`;
+    }
+
+    function renderPagination(total, totalPages) {
+        const pagination = document.getElementById('paginationControls');
+        if (total === 0) {
+            pagination.innerHTML = '';
+            return;
+        }
+
+        const createItem = (label, page, disabled = false, active = false, icon = '') => `
+            <a class="page-link" href="#" onclick="goToPage(${page}); return false;">${label}</a>`;
+
+        const pages = [];
+        pages.push(createItem('Prev', currentPage - 1, currentPage === 1, false, 'bi-chevron-left'));
+
+        const maxButtons = 5;
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+        if (endPage - startPage < maxButtons - 1) {
+            startPage = Math.max(1, endPage - maxButtons + 1);
+        }
+
+        if (startPage > 1) {
+            pages.push(createItem('1', 1));
+            if (startPage > 2) pages.push('<span class="page-link">…</span>');
+        }
+
+        for (let p = startPage; p <= endPage; p++) {
+            pages.push(createItem(String(p), p, false, p === currentPage));
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) pages.push('<span class="page-link">…</span>');
+            pages.push(createItem(String(totalPages), totalPages));
+        }
+
+        pages.push(createItem('Next', currentPage + 1, currentPage === totalPages, false, 'bi-chevron-right'));
+        pagination.innerHTML = pages.join('');
+    }
+
+    function goToPage(page) {
+        const totalPages = Math.max(1, Math.ceil(filteredActivities.length / pageSize));
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        renderActivities();
+    }
+
+    function updateSortIndicators() {
+        const keys = ['activityName', 'activityType', 'startTime', 'distanceM', 'movingTimeS', 'elapsedTimeS', 'avgSpeedMps', 'maxSpeedMps', 'elevationGainM', 'avgHeartrateBpm', 'maxHeartrateBpm', 'deviceName'];
+        keys.forEach(key => {
+            const indicator = document.getElementById(`sort-${key}`);
+            if (!indicator) return;
+            indicator.textContent = sortState.key === key ? (sortState.direction === 'asc' ? '▲' : '▼') : '';
+        });
+    }
+
+    function compareActivities(a, b) {
+        const { key, direction } = sortState;
+        const multiplier = direction === 'asc' ? 1 : -1;
+        const av = a[key];
+        const bv = b[key];
+
+        if (key === 'startTime') {
+            return (new Date(av).getTime() - new Date(bv).getTime()) * multiplier;
+        }
+        if (typeof av === 'number' || typeof bv === 'number') {
+            return ((Number(av) || 0) - (Number(bv) || 0)) * multiplier;
+        }
+        return String(av ?? '').localeCompare(String(bv ?? '')) * multiplier;
+    }
+
+    function updateDashboardCards() {
+        document.getElementById('kpiActivities').textContent = String(allActivities.length);
+        const totalDistanceKm = allActivities.reduce((sum, a) => sum + (Number(a.distanceM) || 0), 0) / 1000;
+        document.getElementById('kpiDistance').textContent = `${totalDistanceKm.toFixed(1)} km`;
+        const totalMovingSeconds = allActivities.reduce((sum, a) => sum + (Number(a.movingTimeS) || 0), 0);
+        document.getElementById('kpiMovingTime').textContent = formatHoursMinutes(totalMovingSeconds);
+        const latest = allActivities
+            .map(a => a.startTime)
+            .filter(Boolean)
+            .sort((a, b) => new Date(b) - new Date(a))[0];
+        document.getElementById('kpiLatest').textContent = latest ? formatDateTime(latest) : '—';
+    }
+
+    function formatHoursMinutes(totalSeconds) {
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = Math.floor((totalSeconds % 3600) % 60);
+        return `${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    function formatDuration(totalSeconds) {
+        if (totalSeconds === null || totalSeconds === undefined || totalSeconds === '') return '-';
+        const seconds = Number(totalSeconds);
+        if (Number.isNaN(seconds)) return '-';
+        const wholeSeconds = Math.max(0, Math.round(seconds));
+        const hours = Math.floor(wholeSeconds / 3600).toString().padStart(2, '0');
+        const minutes = Math.floor((wholeSeconds % 3600) / 60).toString().padStart(2, '0');
+        const remainingSeconds = (wholeSeconds % 60).toString().padStart(2, '0');
+        return `${hours}:${minutes}:${remainingSeconds}`;
+    }
+
+    function formatNumber(value, decimals = 1) {
+        if (value === null || value === undefined || value === '') return '-';
+        const number = Number(value);
+        if (Number.isNaN(number)) return '-';
+        return number.toFixed(decimals);
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
+    function formatDateTime(value) {
+        if (!value) return '-';
+        const date = new Date(value);
+        return isNaN(date.getTime()) ? value : date.toLocaleString();
+    }
+
+    function showLoading(show) {
+        document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+    }
+
+    function showError(message) {
+        const alert = document.getElementById('errorAlert');
+        alert.textContent = message;
+        alert.style.display = 'block';
+        showLoading(false);
+    }
+
+    function showSuccess(message) {
+        const alert = document.getElementById('successAlert');
+        alert.textContent = message;
+        alert.style.display = 'block';
+        setTimeout(() => { alert.style.display = 'none'; }, 3500);
+    }
+
+    function hideAlerts() {
+        document.getElementById('errorAlert').style.display = 'none';
+        document.getElementById('successAlert').style.display = 'none';
+    }
+</script>
+</body>
+</html>
+
