@@ -54,18 +54,19 @@ public class UserController {
 
     @GetMapping(value = "/users")
     public List<User> users() {
+        logger.info("Getting all users");
         return userService.getUsers();
     }
 
     @GetMapping(value = "/user")
-    public User getUser() throws Exception {
-        return userService.loadUserByUsername("Chinthana", "Pannila");
+    public User getUser(@RequestParam String firstName, @RequestParam String lastName) throws Exception {
+        return userService.loadUserByUsername(firstName, lastName);
     }
 
     @PostMapping(value = "/authenticate")
     public ResponseEntity<?> authenticate(@RequestParam String code) {
         try {
-            logger.info("Authenticating with Strava code");
+            logger.info("Authenticating with Strava code via API");
 
             // Create token request
             StravaTokenRequest tokenRequest = StravaTokenRequest.builder()
@@ -111,7 +112,7 @@ public class UserController {
 
             // Save user to database
             User savedUser = userRepository.save(user);
-            logger.info("User saved successfully: {} {}", savedUser.getFirstname(), savedUser.getLastname());
+            logger.info("User saved successfully: {}", savedUser.getUserId());
 
             return ResponseEntity.ok(Map.of(
                     "message", "User authenticated and saved successfully",
@@ -132,7 +133,7 @@ public class UserController {
     @GetMapping(value = "/page/authenticate")
     public RedirectView authenticateViaPage(@RequestParam String code) {
         try {
-            logger.info("Authenticating with Strava code");
+            logger.info("Authenticating with Strava code via User Interface");
 
             // Create token request
             StravaTokenRequest tokenRequest = StravaTokenRequest.builder()
@@ -177,7 +178,7 @@ public class UserController {
 
             // Save user to database
             User savedUser = userRepository.save(user);
-            logger.info("User saved successfully: {} {}", savedUser.getFirstname(), savedUser.getLastname());
+            logger.info("User saved successfully: {}", savedUser.getUserId());
 
             // Redirect to success page with userId
             return new RedirectView("/runanalytics/authenticated.html?userId=" + savedUser.getUserId());
