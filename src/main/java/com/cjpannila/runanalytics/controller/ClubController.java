@@ -1,13 +1,13 @@
 package com.cjpannila.runanalytics.controller;
 
-import com.cjpannila.runanalytics.dto.ClubDto;
-import com.cjpannila.runanalytics.dto.StravaClub;
+import com.cjpannila.runanalytics.dto.UserClubDto;
+import com.cjpannila.runanalytics.dto.StravaClubDto;
 import com.cjpannila.runanalytics.entities.Club;
 import com.cjpannila.runanalytics.entities.User;
 import com.cjpannila.runanalytics.entities.UserClub;
 import com.cjpannila.runanalytics.repositories.ClubRepository;
 import com.cjpannila.runanalytics.repositories.UserClubRepository;
-import com.cjpannila.runanalytics.UserService;
+import com.cjpannila.runanalytics.service.UserService;
 import com.cjpannila.runanalytics.repositories.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,10 +68,10 @@ public class ClubController {
 
             // Check if clubs already exist for this user
             List<UserClub> userClubs = userClubRepository.findById_UserId(userId);
-            List<ClubDto> existingClubs = userClubs.stream()
+            List<UserClubDto> existingClubs = userClubs.stream()
                     .map(uc -> {
                         Club c = uc.getClub();
-                        ClubDto dto = new ClubDto();
+                        UserClubDto dto = new UserClubDto();
                         dto.setClubId(c.getClubId());
                         dto.setName(c.getName());
                         dto.setSportType(c.getSportType());
@@ -93,16 +93,16 @@ public class ClubController {
             headers.setBearerAuth(accessToken);
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            ResponseEntity<StravaClub[]> response = restTemplate.exchange(
+            ResponseEntity<StravaClubDto[]> response = restTemplate.exchange(
                     stravaApiUrl + API_ATHLETE_CLUBS,
                     HttpMethod.GET,
                     entity,
-                    StravaClub[].class
+                    StravaClubDto[].class
             );
 
-            StravaClub[] stravaClubs = response.getBody();
+            StravaClubDto[] stravaClubDtos = response.getBody();
 
-            if (stravaClubs == null || stravaClubs.length == 0) {
+            if (stravaClubDtos == null || stravaClubDtos.length == 0) {
                 logger.info("No clubs found for user: {}", userId);
                 return ResponseEntity.ok(new ArrayList<>());
             }
@@ -111,19 +111,19 @@ public class ClubController {
 
             // Save clubs to database
             List<Club> savedClubs = new ArrayList<>();
-            for (StravaClub stravaClub : stravaClubs) {
+            for (StravaClubDto stravaClubDto : stravaClubDtos) {
                 // Check if club already exists
-                Club club = clubRepository.findById(stravaClub.getId()).orElseGet(() ->
+                Club club = clubRepository.findById(stravaClubDto.getId()).orElseGet(() ->
                     Club.builder()
-                            .clubId(stravaClub.getId())
-                            .name(stravaClub.getName())
-                            .city(stravaClub.getCity())
-                            .country(stravaClub.getCountry())
-                            .sportType(stravaClub.getSportType())
-                            .isPrivate(stravaClub.getIsPrivate())
-                            .memberCount(stravaClub.getMemberCount())
-                            .profileImageUrl(stravaClub.getProfileMedium())
-                            .coverPhotoUrl(stravaClub.getCoverPhoto())
+                            .clubId(stravaClubDto.getId())
+                            .name(stravaClubDto.getName())
+                            .city(stravaClubDto.getCity())
+                            .country(stravaClubDto.getCountry())
+                            .sportType(stravaClubDto.getSportType())
+                            .isPrivate(stravaClubDto.getIsPrivate())
+                            .memberCount(stravaClubDto.getMemberCount())
+                            .profileImageUrl(stravaClubDto.getProfileMedium())
+                            .coverPhotoUrl(stravaClubDto.getCoverPhoto())
                             .build()
                 );
 

@@ -29,6 +29,6 @@ public class StravaTokenResponse {
     @JsonProperty("access_token")
     private String accessToken;
 
-    private StravaAthlete athlete;
+    private StravaAthleteDto athlete;
 }
 
