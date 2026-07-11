@@ -1,19 +1,15 @@
 package com.cjpannila.runanalytics;
 
-import com.cjpannila.runanalytics.controller.UserController;
 import com.cjpannila.runanalytics.dto.StravaTokenResponse;
 import com.cjpannila.runanalytics.entities.User;
 import com.cjpannila.runanalytics.repositories.UserRepository;
-import lombok.NoArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -22,7 +18,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -69,6 +64,7 @@ public class UserService {
                 long nowSecs = System.currentTimeMillis() / 1000L;
                 if (expiresAt != null && expiresAt > nowSecs && user.getAccessToken() != null) {
                     // token still valid
+                    logger.info("Using existing access token for user: {}", user.getUserId());
                     return user.getAccessToken();
                 } else {
                     // need to refresh
@@ -101,6 +97,7 @@ public class UserService {
                         user.setRefreshToken(tokenResponse.getRefreshToken() != null ? tokenResponse.getRefreshToken() : user.getRefreshToken());
                         user.setTokenExpiresAt(tokenResponse.getExpiresAt());
                         User saved = userRepository.save(user);
+                        logger.info("Access token refreshed for user: {}", saved.getUserId());
                         return saved.getAccessToken();
                     }
                 }
