@@ -28,9 +28,9 @@ import static com.cjpannila.runanalytics.util.Constants.API_ATHLETE_CLUBS;
 
 @RestController
 @RequestMapping("/api")
-public class ClubsController {
+public class ClubController {
 
-    Logger logger = LoggerFactory.getLogger(ClubsController.class);
+    Logger logger = LoggerFactory.getLogger(ClubController.class);
 
     private final UserService userService;
     private final ClubRepository clubRepository;
@@ -42,8 +42,8 @@ public class ClubsController {
     private String stravaApiUrl;
 
     @Autowired
-    public ClubsController(UserService userService, ClubRepository clubRepository, UserRepository userRepository,
-                           UserClubRepository userClubRepository, RestTemplate restTemplate) {
+    public ClubController(UserService userService, ClubRepository clubRepository, UserRepository userRepository,
+                          UserClubRepository userClubRepository, RestTemplate restTemplate) {
         this.userService = userService;
         this.clubRepository = clubRepository;
         this.userRepository = userRepository;
