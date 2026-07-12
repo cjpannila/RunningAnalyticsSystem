@@ -1,5 +1,6 @@
 package com.cjpannila.runanalytics.controller;
 
+import com.cjpannila.runanalytics.dto.ClubWeeklyStatsResponseDto;
 import com.cjpannila.runanalytics.dto.UserClubDto;
 import com.cjpannila.runanalytics.dto.StravaClubDto;
 import com.cjpannila.runanalytics.entities.Club;
@@ -7,6 +8,7 @@ import com.cjpannila.runanalytics.entities.User;
 import com.cjpannila.runanalytics.entities.UserClub;
 import com.cjpannila.runanalytics.repositories.ClubRepository;
 import com.cjpannila.runanalytics.repositories.UserClubRepository;
+import com.cjpannila.runanalytics.service.ClubLeaderboardService;
 import com.cjpannila.runanalytics.service.UserService;
 import com.cjpannila.runanalytics.repositories.UserRepository;
 import org.slf4j.Logger;
@@ -21,7 +23,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
 import static com.cjpannila.runanalytics.util.Constants.API_ATHLETE_CLUBS;
@@ -36,6 +42,7 @@ public class ClubController {
     private final ClubRepository clubRepository;
     private final UserRepository userRepository;
     private final UserClubRepository userClubRepository;
+    private final ClubLeaderboardService clubLeaderboardService;
     private final RestTemplate restTemplate;
 
     @Value("${strava.api.url}")
@@ -43,12 +50,40 @@ public class ClubController {
 
     @Autowired
     public ClubController(UserService userService, ClubRepository clubRepository, UserRepository userRepository,
-                          UserClubRepository userClubRepository, RestTemplate restTemplate) {
+                          UserClubRepository userClubRepository, ClubLeaderboardService clubLeaderboardService,
+                          RestTemplate restTemplate) {
         this.userService = userService;
         this.clubRepository = clubRepository;
         this.userRepository = userRepository;
         this.userClubRepository = userClubRepository;
+        this.clubLeaderboardService = clubLeaderboardService;
         this.restTemplate = restTemplate;
+    }
+
+    @GetMapping(value = "/clubs/{clubId}/weekly-stats")
+    public ResponseEntity<?> getClubWeeklyStats(@PathVariable Long clubId,
+                                                @RequestParam(required = false) String weekStart) {
+        try {
+            LocalDate selectedWeekStart = resolveWeekStart(weekStart);
+            ClubWeeklyStatsResponseDto stats = clubLeaderboardService.getWeeklyStats(clubId, selectedWeekStart);
+            return ResponseEntity.ok(stats);
+        } catch (DateTimeParseException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid weekStart format. Use YYYY-MM-DD."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error fetching weekly stats for club: {}", clubId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch club weekly stats"));
+        }
+    }
+
+    private LocalDate resolveWeekStart(String weekStart) {
+        if (weekStart == null || weekStart.isBlank()) {
+            return LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        }
+        LocalDate requestedDate = LocalDate.parse(weekStart);
+        return requestedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     }
 
     @GetMapping(value = "/user/clubs")
