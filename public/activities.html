@@ -168,13 +168,8 @@
 <div class="container container-top">
     <div class="row">
         <div class="col-md-12">
-            <h1 class="page-title">User Activities</h1>
+            <h1 class="page-title">Activities Dashboard</h1>
         </div>
-    </div>
-
-    <div class="alert alert-info" role="alert">
-        <i class="bi bi-info-circle me-2"></i>
-        Click <strong>Sync Activities</strong> to retrieve Strava records, save them into the database, and then view all stored rows below.
     </div>
 
     <div id="errorAlert" class="alert alert-danger error-alert" role="alert"></div>
@@ -182,29 +177,40 @@
 
 	<table class="table table-bordered table-sm">
 		<tbody>
-		<tr>
-			<th style="width: 25%;">Activities</th>
-			<td id="kpiActivities">0</td>
-		</tr>
-		<tr>
-			<th>Distance</th>
-			<td id="kpiDistance">0.0 km</td>
-		</tr>
-		<tr>
-			<th>Moving Time</th>
-			<td id="kpiMovingTime">0h 0m 0s</td>
-		</tr>
-		<tr>
-			<th>Latest</th>
-			<td id="kpiLatest">—</td>
-		</tr>
+            <tr>
+                <th style="width: 25%;">Total Activities</th>
+                <td style="width: 25%;" id="kpiActivities">0</td>
+                <th style="width: 25%;">Total Distance</th>
+                <td style="width: 25%;" id="kpiDistance">0.0 km</td>
+            </tr>
+            <tr>
+                <th style="width: 25%;">Elevation Gain</th>
+                <td style="width: 25%;" id="kpiElevationGain">—</td>
+                <th style="width: 25%;">Elapsed Time</th>
+                <td style="width: 25%;" id="kpiElapsedTime">0h 0m 0s</td>
+            </tr>
+            <tr>
+                <th style="width: 25%;">Average Speed</th>
+                <td style="width: 25%;" id="kpiAvgSpeed">—</td>
+                <th style="width: 25%;">Moving Time</th>
+                <td style="width: 25%;" id="kpiMovingTime">0h 0m 0s</td>
+            </tr>
+            <tr>
+                <th style="width: 25%;">Average Heartrate</th>
+                <td style="width: 25%;" id="kpiAvgHeartrate">—</td>
+                <th style="width: 25%;">Latest</th>
+                <td style="width: 25%;" id="kpiLatest">—</td>
+            </tr>
 		</tbody>
 	</table>
 
     <div class="panel panel-soft mb-4">
         <div class="toolbar">
             <div class="d-flex gap-2 flex-wrap">
-                <button id="syncBtn" class="btn btn-sync" onclick="syncActivities()">
+                <button id="syncBtn" class="btn btn-sync" onclick="syncActivities()"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        title="Click to retrieve activities from Strava, save them to the database, and refresh the activity list.">
                     <i class="bi bi-cloud-download me-1"></i> Sync Activities
                 </button>
                 <button class="btn btn-outline-secondary" onclick="loadSavedActivities()">
@@ -212,9 +218,24 @@
                 </button>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <label for="searchInput">Search activities</label>
-                <input id="searchInput" type="search" placeholder="Search name, type, device, start time" size="35" oninput="applyFilters()">
-                <label class="visually-hidden" for="pageSizeSelect">Rows per page</label>
+                <label for="searchInput">Search</label>
+                <input id="searchInput" type="search" placeholder="Search name" size="15" oninput="applyFilters()">
+                <label for="dateFromInput">From Date</label>
+                <input id="dateFromInput" type="date" onchange="applyFilters()">
+                <label for="dateToInput">To Date</label>
+                <input id="dateToInput" type="date" onchange="applyFilters()">
+                <label for="distanceFromInput">Distance(km)</label>
+                <input id="distanceFromInput" type="number" placeholder="Min" style="width: 55px;" oninput="applyFilters()">
+                <label for="distanceToInput">-</label>
+                <input id="distanceToInput" type="number" placeholder="Max" style="width: 55px;" oninput="applyFilters()">
+                <label for="activityTypeSelect">Activity Type</label>
+                <select id="activityTypeSelect" onchange="applyFilters()">
+                    <option value="all" selected>All</option>
+                    <option value="Run">Run</option>
+                    <option value="Ride">Ride</option>
+                    <option value="Walk">Walk</option>
+                </select>
+                <label for="pageSizeSelect">Rows per page</label>
                 <select id="pageSizeSelect" onchange="changePageSize()">
                     <option value="5">5 / page</option>
                     <option value="10" selected>10 / page</option>
@@ -337,7 +358,7 @@
                 allActivities = activities || [];
                 filteredActivities = [...allActivities];
                 currentPage = 1;
-                updateDashboardCards();
+                updateDashboardCards(allActivities);
                 renderActivities();
                 showLoading(false);
                 if (!activities || activities.length === 0) {
@@ -353,17 +374,51 @@
 
     function applyFilters() {
         const search = document.getElementById('searchInput').value.trim().toLowerCase();
+        const dateFromInput = document.getElementById('dateFromInput').value;
+        const dateToInput = document.getElementById('dateToInput').value;
+        const distanceFrom = document.getElementById('distanceFromInput').value;
+        const distanceTo = document.getElementById('distanceToInput').value;
+        const activityType = document.getElementById('activityTypeSelect').value;
+
+        const dateFrom = dateFromInput ? new Date(dateFromInput) : null;
+        const dateTo = dateToInput ? new Date(dateToInput) : null;
+
         filteredActivities = allActivities.filter(activity => {
-            if (!search) return true;
-            const haystack = [
-                activity.activityName,
-                activity.activityType,
-                activity.deviceName,
-                formatDateTime(activity.startTime)
-            ].join(' ').toLowerCase();
-            return haystack.includes(search);
+            // Text search filter
+            if (search) {
+                const haystack = [
+                    activity.activityName
+                ].join(' ').toLowerCase();
+                if (!haystack.includes(search)) return false;
+            }
+            // Date range filter
+            if (dateFrom || dateTo) {
+                const activityDate = new Date(activity.startTime);
+                if (dateFrom && activityDate < dateFrom) return false;
+                if (dateTo) {
+                    const dateToEndOfDay = new Date(dateTo);
+                    dateToEndOfDay.setHours(23, 59, 59, 999);
+                    if (activityDate > dateToEndOfDay) return false;
+                }
+            }
+            // Distance range filter (inputs are in km)
+            if (distanceFrom !== null || distanceTo !== null ) {
+                const distanceKm = (Number(activity.distanceM) || 0) / 1000;
+                if (distanceFrom !== null && distanceKm < distanceFrom) {
+                    return false;
+                }
+                if (distanceTo !== null &&  distanceTo > distanceFrom && distanceKm > distanceTo) {
+                    return false;
+                }
+            }
+            // Activity type filter
+            if (activityType && activityType !== 'all' && activity.activityType !== activityType) {
+                return false;
+            }
+            return true;
         });
         currentPage = 1;
+        updateDashboardCards(filteredActivities);
         renderActivities();
     }
 
@@ -489,13 +544,35 @@
         return String(av ?? '').localeCompare(String(bv ?? '')) * multiplier;
     }
 
-    function updateDashboardCards() {
-        document.getElementById('kpiActivities').textContent = String(allActivities.length);
-        const totalDistanceKm = allActivities.reduce((sum, a) => sum + (Number(a.distanceM) || 0), 0) / 1000;
+    function updateDashboardCards(list) {
+        document.getElementById('kpiActivities').textContent = String(list.length);
+        const totalDistanceKm = list.reduce((sum, a) => sum + (Number(a.distanceM) || 0), 0) / 1000;
         document.getElementById('kpiDistance').textContent = `${totalDistanceKm.toFixed(1)} km`;
-        const totalMovingSeconds = allActivities.reduce((sum, a) => sum + (Number(a.movingTimeS) || 0), 0);
+        const totalMovingSeconds = list.reduce((sum, a) => sum + (Number(a.movingTimeS) || 0), 0);
         document.getElementById('kpiMovingTime').textContent = formatHoursMinutes(totalMovingSeconds);
-        const latest = allActivities
+        const totalElapsedTimeSeconds = list.reduce((sum, a) => sum + (Number(a.elapsedTimeS) || 0), 0);
+        document.getElementById('kpiElapsedTime').textContent = formatHoursMinutes(totalElapsedTimeSeconds);
+        const totalElevationGainM = list.reduce((sum, a) => sum + (Number(a.elevationGainM) || 0), 0);
+        document.getElementById('kpiElevationGain').textContent = `${totalElevationGainM.toFixed(1)} m`;
+        let totalSpeed = 0;
+        let speedCount = 0;
+        let totalHr = 0;
+        let hrCount = 0;
+        list.forEach(a => {
+            if (a.avgSpeedMps != null) {
+                totalSpeed += Number(a.avgSpeedMps);
+                speedCount++;
+            }
+            if (a.avgHeartrateBpm != null) {
+                totalHr += Number(a.avgHeartrateBpm);
+                hrCount++;
+            }
+        });
+        const avgSpeed = speedCount > 0 ? totalSpeed / speedCount : 0;
+        const avgHr = hrCount > 0 ? totalHr / hrCount : 0;
+        document.getElementById('kpiAvgSpeed').textContent = `${(avgSpeed * 3.6).toFixed(1)} km/h`;
+        document.getElementById('kpiAvgHeartrate').textContent = `${avgHr.toFixed(1)} bpm`;
+        const latest = list
             .map(a => a.startTime)
             .filter(Boolean)
             .sort((a, b) => new Date(b) - new Date(a))[0];
