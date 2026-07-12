@@ -201,6 +201,10 @@
                 <th style="width: 25%;">Latest</th>
                 <td style="width: 25%;" id="kpiLatest">—</td>
             </tr>
+            <tr>
+                <th style="width: 25%;">Average Cadence</th>
+                <td style="width: 25%;" id="kpiAvgCadence">—</td>
+            </tr>
 		</tbody>
 	</table>
 
@@ -216,6 +220,9 @@
                 <button class="btn btn-outline-secondary" onclick="loadSavedActivities()">
                     <i class="bi bi-arrow-clockwise me-1"></i> Refresh
                 </button>
+                <button class="btn btn-success" onclick="exportToCSV()">
+                    <i class="bi bi-file-earmark-spreadsheet"></i>Export CSV
+                </button>
             </div>
             <div class="d-flex gap-2 flex-wrap">
                 <label for="searchInput">Search</label>
@@ -230,8 +237,8 @@
                 <input id="distanceToInput" type="number" placeholder="Max" style="width: 55px;" oninput="applyFilters()">
                 <label for="activityTypeSelect">Activity Type</label>
                 <select id="activityTypeSelect" onchange="applyFilters()">
-                    <option value="all" selected>All</option>
-                    <option value="Run">Run</option>
+                    <option value="All">All</option>
+                    <option value="Run" selected>Run</option>
                     <option value="Ride">Ride</option>
                     <option value="Walk">Walk</option>
                 </select>
@@ -262,6 +269,7 @@
                     <th class="numeric"><button class="sort-btn" onclick="sortBy('distanceM')">Distance (Km) <span class="sort-indicator" id="sort-distanceM"></span></button></th>
                     <th class="numeric"><button class="sort-btn" onclick="sortBy('movingTimeS')">Moving Time <span class="sort-indicator" id="sort-movingTimeS"></span></button></th>
                     <th class="numeric"><button class="sort-btn" onclick="sortBy('elapsedTimeS')">Elapsed Time <span class="sort-indicator" id="sort-elapsedTimeS"></span></button></th>
+                    <th class="numeric"><button class="sort-btn" onclick="sortBy('avgCadence')">Avg Cadence <span class="sort-indicator" id="sort-avgCadence"></span></button></th>
                     <th class="numeric"><button class="sort-btn" onclick="sortBy('avgSpeedMps')">Avg Speed (Km/h) <span class="sort-indicator" id="sort-avgSpeedMps"></span></button></th>
                     <th class="numeric"><button class="sort-btn" onclick="sortBy('maxSpeedMps')">Max Speed (Km/h) <span class="sort-indicator" id="sort-maxSpeedMps"></span></button></th>
                     <th class="numeric"><button class="sort-btn" onclick="sortBy('elevationGainM')">Elevation Gain (m) <span class="sort-indicator" id="sort-elevationGainM"></span></button></th>
@@ -345,7 +353,6 @@
             showError('Please provide a user ID first.');
             return;
         }
-
         showLoading(true);
         hideAlerts();
 
@@ -358,12 +365,17 @@
                 allActivities = activities || [];
                 filteredActivities = [...allActivities];
                 currentPage = 1;
-                updateDashboardCards(allActivities);
-                renderActivities();
+                //updateDashboardCards(allActivities);
+                //renderActivities();
                 showLoading(false);
                 if (!activities || activities.length === 0) {
                     showSuccess('No saved activities found for this user.');
                 }
+                clearFilters();
+                // To filter Runs only at first loading
+                applyFilters();
+                updateDashboardCards(filteredActivities);
+                renderActivities();
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -407,12 +419,12 @@
                 if (distanceFrom !== null && distanceKm < distanceFrom) {
                     return false;
                 }
-                if (distanceTo !== null &&  distanceTo > distanceFrom && distanceKm > distanceTo) {
+                if (distanceTo !== null &&  distanceTo >= distanceFrom && distanceKm > distanceTo) {
                     return false;
                 }
             }
             // Activity type filter
-            if (activityType && activityType !== 'all' && activity.activityType !== activityType) {
+            if (activityType && activityType !== 'All' && activity.activityType !== activityType) {
                 return false;
             }
             return true;
@@ -420,6 +432,18 @@
         currentPage = 1;
         updateDashboardCards(filteredActivities);
         renderActivities();
+    }
+
+    function clearFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('dateFromInput').value = '';
+        document.getElementById('dateToInput').value = '';
+        document.getElementById('distanceFromInput').value = '';
+        document.getElementById('distanceToInput').value = '';
+        document.getElementById('activityTypeSelect').value = 'Run';
+        document.getElementById('pageSizeSelect').value = '10';   // or your default
+
+        currentPage = 1;
     }
 
     function changePageSize() {
@@ -450,7 +474,7 @@
         renderPagination(total, totalPages);
 
         if (pageItems.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="12"><div class="empty-state"><i class="bi bi-inbox fs-1 d-block mb-2"></i>No activities found</div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="13"><div class="empty-state"><i class="bi bi-inbox fs-1 d-block mb-2"></i>No activities found</div></td></tr>';
             document.getElementById('paginationInfo').textContent = 'Showing 0 activities';
             return;
         }
@@ -463,6 +487,7 @@
                 <td class="numeric">${formatNumber(activity.distanceM / 1000, 2)}</td>
                 <td class="numeric">${formatDuration(activity.movingTimeS)}</td>
                 <td class="numeric">${formatDuration(activity.elapsedTimeS)}</td>
+                <td class="numeric">${formatNumber((activity.avgCadence || 0) * 2, 0)}</td>
                 <td class="numeric">${formatNumber(activity.avgSpeedMps * 60 * 60 / 1000, 2)}</td>
                 <td class="numeric">${formatNumber(activity.maxSpeedMps * 60 * 60 / 1000, 2)}</td>
                 <td class="numeric">${formatNumber(activity.elevationGainM, 0)}</td>
@@ -521,7 +546,7 @@
     }
 
     function updateSortIndicators() {
-        const keys = ['activityName', 'activityType', 'startTime', 'distanceM', 'movingTimeS', 'elapsedTimeS', 'avgSpeedMps', 'maxSpeedMps', 'elevationGainM', 'avgHeartrateBpm', 'maxHeartrateBpm', 'deviceName'];
+        const keys = ['activityName', 'activityType', 'startTime', 'distanceM', 'movingTimeS', 'elapsedTimeS', 'avgCadence', 'avgSpeedMps', 'maxSpeedMps', 'elevationGainM', 'avgHeartrateBpm', 'maxHeartrateBpm', 'deviceName'];
         keys.forEach(key => {
             const indicator = document.getElementById(`sort-${key}`);
             if (!indicator) return;
@@ -558,6 +583,8 @@
         let speedCount = 0;
         let totalHr = 0;
         let hrCount = 0;
+        let totalCadence = 0;
+        let cadenceCount = 0;
         list.forEach(a => {
             if (a.avgSpeedMps != null) {
                 totalSpeed += Number(a.avgSpeedMps);
@@ -567,11 +594,17 @@
                 totalHr += Number(a.avgHeartrateBpm);
                 hrCount++;
             }
+            if (a.avgCadence != null) {
+                totalCadence += Number(a.avgCadence);
+                cadenceCount++;
+            }
         });
         const avgSpeed = speedCount > 0 ? totalSpeed / speedCount : 0;
         const avgHr = hrCount > 0 ? totalHr / hrCount : 0;
+        const avgCadence = cadenceCount > 0 ? totalCadence / cadenceCount : 0;
         document.getElementById('kpiAvgSpeed').textContent = `${(avgSpeed * 3.6).toFixed(1)} km/h`;
         document.getElementById('kpiAvgHeartrate').textContent = `${avgHr.toFixed(1)} bpm`;
+        document.getElementById('kpiAvgCadence').textContent = `${(avgCadence * 2).toFixed(0)} spm`;
         const latest = list
             .map(a => a.startTime)
             .filter(Boolean)
@@ -640,6 +673,61 @@
     function hideAlerts() {
         document.getElementById('errorAlert').style.display = 'none';
         document.getElementById('successAlert').style.display = 'none';
+    }
+    function exportToCSV() {
+
+        if (filteredActivities.length === 0) {
+            alert("No activities to export.");
+            return;
+        }
+
+        const headers = [
+            "Activity Name",
+            "Activity Type",
+            "Start Time",
+            "Distance (km)",
+            "Elevation (m)",
+            "Moving Time (min)",
+            "Elapsed Time (min)",
+            "Average Cadence",
+            "Average Speed (km/h)",
+            "Max Speed (km/h)",
+            "Average Heart Rate",
+            "Device"
+        ];
+
+        const rows = filteredActivities.map(a => [
+            a.activityName,
+            a.activityType,
+            a.startTime,
+            ((a.distanceM || 0) / 1000).toFixed(2),
+            ((a.elevationGainM || 0)).toFixed(1),
+            ((a.movingTimeS || 0) / 60).toFixed(1),
+            ((a.elapsedTimeS || 0) / 60).toFixed(1),
+            ((a.avgCadence || 0) * 2).toFixed(0),
+            ((a.avgSpeedMps || 0) * 3.6).toFixed(2),
+            ((a.maxSpeedMps || 0) * 3.6).toFixed(2),
+            a.averageHeartrate ?? "-",
+            a.device ?? "-"
+        ]);
+
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(r => r.join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], {
+            type: "text/csv;charset=utf-8;"
+        });
+
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "activities.csv";
+        link.click();
+
+        URL.revokeObjectURL(url);
     }
 </script>
 </body>
