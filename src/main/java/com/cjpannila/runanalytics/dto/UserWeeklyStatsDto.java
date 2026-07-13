@@ -18,6 +18,8 @@ public class UserWeeklyStatsDto {
     private Double averagePaceMinPerKm;
     private Double totalElevationM;
     private Long totalRunningTimeS;
+    // ISO date string for the Monday starting the week (e.g. 2026-07-13)
+    private String weekStart;
     private Double averageHeartRate;
     private Double longestRunKm;
     private Double trainingLoad;

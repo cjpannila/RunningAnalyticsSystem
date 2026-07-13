@@ -72,6 +72,7 @@
                 <table class="table table-striped">
                     <thead>
                     <tr>
+                        <th>Week</th>
                         <th>Runner</th>
                         <th class="text-end">Runs</th>
                         <th class="text-end">Distance (km)</th>
@@ -185,6 +186,7 @@
         if (!users.length) { tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No data for selected week</td></tr>'; return; }
         tbody.innerHTML = users.map(u => `
             <tr>
+                <td>${escapeHtml(u.weekStart || '')}</td>
                 <td>${escapeHtml(u.runnerName || ((u.firstname||'') + ' ' + (u.lastname||'')) || `Runner ${u.userId}`)}</td>
                 <td class="text-end">${u.runCount||0}</td>
                 <td class="text-end">${formatNumber(u.totalDistanceKm,2)}</td>

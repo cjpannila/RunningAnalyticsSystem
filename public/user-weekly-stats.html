@@ -53,6 +53,11 @@
             <p class="text-muted mb-0" id="weekRangeText">Week: -</p>
         </div>
         <div class="d-flex gap-2 align-items-center">
+            <label class="form-label mb-0 ms-3 me-2" for="allSelect">All</label>
+            <select id="allSelect" class="form-select" onchange="loadStats()">
+                <option value="NO" selected>No</option>
+                <option value="YES">Yes</option>
+            </select>
             <label class="form-label mb-0 ms-3 me-2" for="dateSelector">Date</label>
             <input type="date" id="dateSelector" class="form-control" onchange="loadStats()">
         </div>
@@ -70,6 +75,7 @@
                 <table class="table table-striped">
                     <thead>
                     <tr>
+                        <th>Week</th>
                         <th>Runner</th>
                         <th class="text-end">Runs</th>
                         <th class="text-end">Distance (km)</th>
@@ -105,7 +111,8 @@
         document.getElementById('backToUsersLink').href = preUserId ? `users.html?userId=${encodeURIComponent(preUserId)}` : 'users.html';
         initializeDate();
         loadStats();
-        document.getElementById('filterBtn').addEventListener('click', loadStats);
+        // optional filter button may not exist; keep defensive binding
+        const fb = document.getElementById('filterBtn'); if (fb) fb.addEventListener('click', loadStats);
     });
 
     function initializeDate() {
@@ -115,8 +122,14 @@
     function loadStats(){
         hideError();
         showLoading(true);
-        const selectedDate = document.getElementById('dateSelector').value;
-        const weekStart = toIsoDate(getMonday(new Date(selectedDate)));
+        const all = document.getElementById("allSelect").value;
+        let weekStart;
+        if (all === 'YES') {
+            weekStart = 'ALL';
+        } else {
+            const selectedDate = document.getElementById('dateSelector').value;
+            weekStart = toIsoDate(getMonday(new Date(selectedDate)));
+        }
         const userIdParam = preUserId ? `&userId=${encodeURIComponent(preUserId)}` : '';
         fetch(`${API_BASE}/users/weekly-stats?weekStart=${encodeURIComponent(weekStart)}${userIdParam}`)
             .then(r=>{ if(!r.ok) return r.json().then(d=>{throw new Error(d.error||'Failed');}); return r.json(); })
@@ -128,13 +141,20 @@
             .catch(e=>{ showLoading(false); showError(e.message); });
     }
 
-    function renderWeekRange(start,end){ document.getElementById('weekRangeText').textContent = `Week: ${start} to ${end}`; }
+    function renderWeekRange(start,end){
+        if (start === 'ALL' || end === 'ALL') {
+            document.getElementById('weekRangeText').textContent = `All weeks`;
+        } else {
+            document.getElementById('weekRangeText').textContent = `Week: ${start} to ${end}`;
+        }
+    }
 
     function renderTable(users){
         const tbody = document.getElementById('statsTableBody');
         if (!users.length) { tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No data for selected week</td></tr>'; return; }
         tbody.innerHTML = users.map(u=>`
             <tr>
+                <td>${escapeHtml(u.weekStart || '')}</td>
                 <td>${escapeHtml((u.firstname||'') + ' ' + (u.lastname||''))}</td>
                 <td class="text-end">${u.runCount||0}</td>
                 <td class="text-end">${formatNumber(u.totalDistanceKm,2)}</td>
@@ -148,6 +168,11 @@
             </tr>
         `).join('');
     }
+
+    document.getElementById("allSelect").addEventListener("change", function () {
+        document.getElementById("dateSelector").disabled = this.value === "YES";
+        loadStats();
+    });
 
     function formatNumber(v,d){ if (v===null||v===undefined) return '-'; return Number(v).toFixed(d); }
     function formatDuration(s){ if(!s) return '0h 0m 0s'; const sec = Number(s); const h=Math.floor(sec/3600); const m=Math.floor((sec%3600)/60); const se=sec%60; return `${h}h ${m}m ${se}s`; }

@@ -1,11 +1,13 @@
 package com.cjpannila.runanalytics.controller;
 
+import com.cjpannila.runanalytics.repositories.ActivityRepository;
 import com.cjpannila.runanalytics.service.UserService;
 import com.cjpannila.runanalytics.service.AnalyticsService;
 import com.cjpannila.runanalytics.dto.UserWeeklyStatsDto;
 import com.cjpannila.runanalytics.dto.StravaTokenRequest;
 import com.cjpannila.runanalytics.dto.StravaTokenResponse;
 import com.cjpannila.runanalytics.entities.User;
+import com.cjpannila.runanalytics.entities.Activity;
 import com.cjpannila.runanalytics.repositories.UserRepository;
 import com.cjpannila.runanalytics.util.Constants;
 import org.slf4j.Logger;
@@ -19,6 +21,8 @@ import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.DayOfWeek;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +32,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -36,6 +41,7 @@ public class UserController {
     private final UserService userService;
     private final UserRepository userRepository;
     private final AnalyticsService analyticsService;
+    private final ActivityRepository activityRepository;
     private final RestTemplate restTemplate;
 
     @Value("${strava.client.id}")
@@ -47,10 +53,11 @@ public class UserController {
     @Value("${strava.oauth.token.url}")
     private String stravaTokenUrl;
 
-    public UserController(UserService userService, UserRepository userRepository, AnalyticsService analyticsService, RestTemplate restTemplate) {
+    public UserController(UserService userService, UserRepository userRepository, AnalyticsService analyticsService, ActivityRepository activityRepository, RestTemplate restTemplate) {
         this.userService = userService;
         this.userRepository = userRepository;
         this.analyticsService = analyticsService;
+        this.activityRepository = activityRepository;
         this.restTemplate = restTemplate;
     }
 
@@ -60,14 +67,17 @@ public class UserController {
                                       @RequestParam(required = false) String search,
                                       @RequestParam(required = false) String userIds) {
         try {
-            LocalDate selectedWeekStart;
-            if (weekStart == null || weekStart.isBlank()) {
-                selectedWeekStart = LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
-            } else {
-                selectedWeekStart = LocalDate.parse(weekStart).with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+            boolean allWeeks = weekStart != null && "ALL".equalsIgnoreCase(weekStart.trim());
+            LocalDate selectedWeekStart = null;
+            LocalDate weekEnd = null;
+            if (!allWeeks) {
+                if (weekStart == null || weekStart.isBlank()) {
+                    selectedWeekStart = LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                } else {
+                    selectedWeekStart = LocalDate.parse(weekStart).with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                }
+                weekEnd = selectedWeekStart.plusDays(6);
             }
-
-            LocalDate weekEnd = selectedWeekStart.plusDays(6);
 
             List<User> users = userService.getUsers();
 
@@ -96,38 +106,100 @@ public class UserController {
             }
 
             List<UserWeeklyStatsDto> results = new ArrayList<>();
-            stream.forEach(u -> {
-                Long uid = u.getUserId();
-                double totalDistance = analyticsService.calculateWeeklyDistance(uid, selectedWeekStart);
-                double avgPace = analyticsService.calculateAveragePace(uid, selectedWeekStart);
-                double avgHr = analyticsService.calculateAverageHeartRate(uid, selectedWeekStart);
-                double avgCadence = analyticsService.calculateAverageCadence(uid, selectedWeekStart);
-                double trainingLoad = analyticsService.calculateTrainingLoad(uid, selectedWeekStart);
-                double longest = analyticsService.calculateLongestRun(uid, selectedWeekStart);
-                double elevation = analyticsService.calculateWeeklyElevation(uid, selectedWeekStart);
-                long movingSeconds = analyticsService.calculateTotalMovingTimeSeconds(uid, selectedWeekStart);
-                double runCount = analyticsService.calculateWeeklyRunCount(uid, selectedWeekStart);
 
-                UserWeeklyStatsDto dto = UserWeeklyStatsDto.builder()
-                        .userId(uid)
-                        .firstname(u.getFirstname())
-                        .lastname(u.getLastname())
-                        .runCount((int) runCount)
-                        .totalDistanceKm(round(totalDistance, 2))
-                        .averagePaceMinPerKm(round(avgPace, 2))
-                        .averageHeartRate(round(avgHr, 1))
-                        .averageCadence(round(avgCadence, 0))
-                        .trainingLoad(round(trainingLoad, 2))
-                        .longestRunKm(round(longest, 2))
-                        .totalElevationM(round(elevation, 1))
-                        .totalRunningTimeS(movingSeconds)
-                        .build();
-                results.add(dto);
-            });
+            // collect the filtered users once (we will iterate per-week and per-user)
+            List<User> filteredUsers = stream.collect(Collectors.toList());
+
+            // if client requested ALL weeks, return a row per user per week from first->last
+            if ("ALL".equalsIgnoreCase(weekStart != null ? weekStart : "")) {
+                // build id list for range queries
+                List<Long> idsForRange = new ArrayList<>();
+                if (!idFilter.isEmpty()) idsForRange.addAll(idFilter);
+                else if (userId != null) idsForRange.add(userId);
+                if (idsForRange.isEmpty()) filteredUsers.forEach(x -> { if (x.getUserId() != null) idsForRange.add(x.getUserId()); });
+
+                LocalDateTime minStart = idsForRange.isEmpty() ? null : activityRepository.findMinStartTimeForUsers(idsForRange);
+                LocalDateTime maxStart = idsForRange.isEmpty() ? null : activityRepository.findMaxStartTimeForUsers(idsForRange);
+                if (minStart == null || maxStart == null) {
+                    // no activity range -> return empty users list
+                } else {
+                    LocalDate firstMonday = minStart.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                    LocalDate lastMonday = maxStart.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+                    // iterate weeks newest->oldest
+                    LocalDate cur = lastMonday;
+                    while (!cur.isBefore(firstMonday)) {
+                        final LocalDate weekStartDate = cur;
+                        // for each user, compute weekly metrics using AnalyticsService
+                        for (User u : filteredUsers) {
+                            Long uid = u.getUserId();
+                            double totalDistance = analyticsService.calculateWeeklyDistance(uid, weekStartDate);
+                            double avgPace = analyticsService.calculateAveragePace(uid, weekStartDate);
+                            double avgHr = analyticsService.calculateAverageHeartRate(uid, weekStartDate);
+                            double avgCadence = analyticsService.calculateAverageCadence(uid, weekStartDate);
+                            double trainingLoad = analyticsService.calculateTrainingLoad(uid, weekStartDate);
+                            double longest = analyticsService.calculateLongestRun(uid, weekStartDate);
+                            double elevation = analyticsService.calculateWeeklyElevation(uid, weekStartDate);
+                            long movingSeconds = analyticsService.calculateTotalMovingTimeSeconds(uid, weekStartDate);
+                            double runCount = analyticsService.calculateWeeklyRunCount(uid, weekStartDate);
+
+                            UserWeeklyStatsDto dto = UserWeeklyStatsDto.builder()
+                                    .userId(uid)
+                                    .firstname(u.getFirstname())
+                                    .lastname(u.getLastname())
+                                    .weekStart(weekStartDate.toString())
+                                    .runCount((int) runCount)
+                                    .totalDistanceKm(round(totalDistance, 2))
+                                    .averagePaceMinPerKm(Double.isNaN(avgPace)?null:round(avgPace, 2))
+                                    .averageHeartRate(Double.isNaN(avgHr)?null:round(avgHr, 1))
+                                    .averageCadence(Double.isNaN(avgCadence)?null:round(avgCadence, 0))
+                                    .trainingLoad(Double.isNaN(trainingLoad)?null:round(trainingLoad, 2))
+                                    .longestRunKm(round(longest, 2))
+                                    .totalElevationM(round(elevation, 1))
+                                    .totalRunningTimeS(movingSeconds)
+                                    .build();
+                            results.add(dto);
+                        }
+                        cur = cur.minusWeeks(1);
+                    }
+                }
+            } else {
+                // single selected week: compute metrics per filtered user for that week
+                final LocalDate weekStartForLambda = selectedWeekStart;
+                for (User u : filteredUsers) {
+                    Long uid = u.getUserId();
+                    double totalDistance = analyticsService.calculateWeeklyDistance(uid, weekStartForLambda);
+                    double avgPace = analyticsService.calculateAveragePace(uid, weekStartForLambda);
+                    double avgHr = analyticsService.calculateAverageHeartRate(uid, weekStartForLambda);
+                    double avgCadence = analyticsService.calculateAverageCadence(uid, weekStartForLambda);
+                    double trainingLoad = analyticsService.calculateTrainingLoad(uid, weekStartForLambda);
+                    double longest = analyticsService.calculateLongestRun(uid, weekStartForLambda);
+                    double elevation = analyticsService.calculateWeeklyElevation(uid, weekStartForLambda);
+                    long movingSeconds = analyticsService.calculateTotalMovingTimeSeconds(uid, weekStartForLambda);
+                    double runCount = analyticsService.calculateWeeklyRunCount(uid, weekStartForLambda);
+
+                    UserWeeklyStatsDto dto = UserWeeklyStatsDto.builder()
+                            .userId(uid)
+                            .firstname(u.getFirstname())
+                            .lastname(u.getLastname())
+                            .weekStart(weekStartForLambda != null ? weekStartForLambda.toString() : null)
+                            .runCount((int) runCount)
+                            .totalDistanceKm(round(totalDistance, 2))
+                            .averagePaceMinPerKm(round(avgPace, 2))
+                            .averageHeartRate(round(avgHr, 1))
+                            .averageCadence(round(avgCadence, 0))
+                            .trainingLoad(round(trainingLoad, 2))
+                            .longestRunKm(round(longest, 2))
+                            .totalElevationM(round(elevation, 1))
+                            .totalRunningTimeS(movingSeconds)
+                            .build();
+                    results.add(dto);
+                }
+            }
 
             java.util.Map<String, Object> resp = new java.util.HashMap<>();
-            resp.put("weekStart", selectedWeekStart.toString());
-            resp.put("weekEnd", weekEnd.toString());
+            resp.put("weekStart", (selectedWeekStart != null) ? selectedWeekStart.toString() : "ALL");
+            resp.put("weekEnd", (weekEnd != null) ? weekEnd.toString() : "ALL");
             resp.put("users", results);
             return resp;
         } catch (Exception e) {

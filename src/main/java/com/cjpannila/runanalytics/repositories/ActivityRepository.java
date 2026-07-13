@@ -53,5 +53,11 @@ public interface ActivityRepository extends CrudRepository<Activity, Long> {
             Long userId,
             LocalDateTime from,
             LocalDateTime to);
+
+    @Query("SELECT MIN(a.startTime) FROM Activity a WHERE a.user.userId IN :userIds AND a.activityType = 'Run'")
+    LocalDateTime findMinStartTimeForUsers(@Param("userIds") java.util.List<Long> userIds);
+
+    @Query("SELECT MAX(a.startTime) FROM Activity a WHERE a.user.userId IN :userIds AND a.activityType = 'Run'")
+    LocalDateTime findMaxStartTimeForUsers(@Param("userIds") java.util.List<Long> userIds);
 }
 
