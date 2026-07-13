@@ -12,18 +12,19 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class AnalyticsService {
-    Logger logger = LoggerFactory.getLogger(AnalyticsService.class);
+    private static final Logger logger = LoggerFactory.getLogger(AnalyticsService.class);
     private final ActivityRepository activityRepository;
 
     // Calculate avg pace for a user for a given week.
     // Pace is calculated as total moving time (in minutes) divided by total distance (in kilometers).
     // return - minutes per km
     public double calculateAveragePace(Long userId, LocalDate weekStart) {
-
+        logger.info("Calculating average pace for userId: {}, weekStart: {}", userId, weekStart);
         List<Activity> activities = getActivitiesForWeek(userId, weekStart);
 
         double totalDistanceKm = activities.stream()
@@ -42,18 +43,22 @@ public class AnalyticsService {
 
     // avg heart rate per week
     public double calculateAverageHeartRate(Long userId, LocalDate weekStart) {
+        logger.info("Calculating average heart rate for userId: {}, weekStart: {}", userId, weekStart);
         List<Activity> activities = getActivitiesForWeek(userId, weekStart);
         if (activities.isEmpty()) {
             return 0;
         }
         return activities.stream()
-                .mapToDouble(Activity::getAvgHeartrateBpm)
+                .map(Activity::getAvgHeartrateBpm)
+                .filter(Objects::nonNull)
+                .mapToDouble(Number::doubleValue)
                 .average()
                 .orElse(0.0);
     }
 
     // weekly distance in km
     public double calculateWeeklyDistance(Long userId, LocalDate weekStart) {
+        logger.info("Calculating weekly distance for userId: {}, weekStart: {}", userId, weekStart);
         List<Activity> activities = getActivitiesForWeek(userId, weekStart);
         if (activities.isEmpty()) {
             return 0;
@@ -65,6 +70,7 @@ public class AnalyticsService {
 
     //Longest run distance in km
     public double calculateLongestRun(Long userId, LocalDate weekStart) {
+        logger.info("Calculating longest run for userId: {}, weekStart: {}", userId, weekStart);
         List<Activity> activities = getActivitiesForWeek(userId, weekStart);
         if (activities.isEmpty()) {
             return 0;
@@ -77,12 +83,15 @@ public class AnalyticsService {
 
     //average cadence
     public double calculateAverageCadence(Long userId, LocalDate weekStart) {
+        logger.info("Calculating average cadence for userId: {}, weekStart: {}", userId, weekStart);
         List<Activity> activities = getActivitiesForWeek(userId, weekStart);
         if (activities.isEmpty()) {
             return 0;
         }
         return activities.stream()
-                .mapToDouble(Activity::getAvgCadence)
+                .map(Activity::getAvgCadence)
+                .filter(Objects::nonNull)
+                .mapToDouble(Number::doubleValue)
                 .average()
                 .orElse(0.0) * 2;
     }
@@ -90,6 +99,7 @@ public class AnalyticsService {
     //Training Load > Sum of (Duration in minutes×Intensity Factor)
     //Intensity Factor=Average Heart Rate/Max Heart Rate
     public double calculateTrainingLoad(Long userId, LocalDate weekStart) {
+        logger.info("Calculating training load for userId: {}, weekStart: {}", userId, weekStart);
         List<Activity> activities = getActivitiesForWeek(userId, weekStart);
        if (activities.isEmpty()) {
             return 0.0;
@@ -111,6 +121,7 @@ public class AnalyticsService {
 
     // total elevation gain in meters for the week
     public double calculateWeeklyElevation(Long userId, LocalDate weekStart) {
+        logger.info("Calculating elevation for userId: {}, weekStart: {}", userId, weekStart);
         List<Activity> activities = getActivitiesForWeek(userId, weekStart);
         if (activities.isEmpty()) return 0.0;
         return activities.stream()
@@ -120,6 +131,7 @@ public class AnalyticsService {
 
     // total moving time in seconds for the week
     public long calculateTotalMovingTimeSeconds(Long userId, LocalDate weekStart) {
+        logger.info("Calculating moving time for userId: {}, weekStart: {}", userId, weekStart);
         List<Activity> activities = getActivitiesForWeek(userId, weekStart);
         if (activities.isEmpty()) return 0L;
         return (long) activities.stream()

@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -115,6 +116,7 @@ public class UserController {
                         .totalDistanceKm(round(totalDistance, 2))
                         .averagePaceMinPerKm(round(avgPace, 2))
                         .averageHeartRate(round(avgHr, 1))
+                        .averageCadence(round(avgCadence, 0))
                         .trainingLoad(round(trainingLoad, 2))
                         .longestRunKm(round(longest, 2))
                         .totalElevationM(round(elevation, 1))
@@ -290,6 +292,22 @@ public class UserController {
         try {
             String accessToken = userService.getAccessToken(userId);
             if  (accessToken != null && !accessToken.isEmpty()) {
+                // Include expires_at (epoch seconds) from the saved user record
+                try {
+                    Long uid = Long.parseLong(userId);
+                    Optional<User> userOpt = userRepository.findById(uid);
+                    if (userOpt.isPresent()) {
+                        User user = userOpt.get();
+                        Long expiresAt = user.getTokenExpiresAt();
+                        return ResponseEntity.ok(Map.of(
+                                "access_token", accessToken,
+                                "expires_at", expiresAt != null ? expiresAt : 0L
+                        ));
+                    }
+                } catch (NumberFormatException nfe) {
+                    // invalid userId format — fall back to returning access token only
+                    logger.warn("Invalid userId format when returning expires_at: {}", userId);
+                }
                 return ResponseEntity.ok(Map.of("access_token", accessToken));
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)

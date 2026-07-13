@@ -21,5 +21,6 @@ public class UserWeeklyStatsDto {
     private Double averageHeartRate;
     private Double longestRunKm;
     private Double trainingLoad;
+    private Double averageCadence;
 }
 

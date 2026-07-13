@@ -78,6 +78,7 @@
                         <th class="text-end">Avg Pace</th>
                         <th class="text-end">Elevation (m)</th>
                         <th class="text-end">Running Time</th>
+                        <th class="text-end">Avg Cadence</th>
                         <th class="text-end">Avg HR</th>
                         <th class="text-end">Longest Run (km)</th>
                         <th class="text-end">Training Load</th>
@@ -162,7 +163,7 @@
 
         if (userIds.length === 0) {
             // no members
-            document.getElementById('statsTableBody').innerHTML = '<tr><td colspan="9" class="text-center text-muted">No members in this club</td></tr>';
+            document.getElementById('statsTableBody').innerHTML = '<tr><td colspan="10" class="text-center text-muted">No members in this club</td></tr>';
             showLoading(false);
             return;
         }
@@ -181,7 +182,7 @@
 
     function renderTable(users) {
         const tbody = document.getElementById('statsTableBody');
-        if (!users.length) { tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No data for selected week</td></tr>'; return; }
+        if (!users.length) { tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No data for selected week</td></tr>'; return; }
         tbody.innerHTML = users.map(u => `
             <tr>
                 <td>${escapeHtml(u.runnerName || ((u.firstname||'') + ' ' + (u.lastname||'')) || `Runner ${u.userId}`)}</td>
@@ -190,6 +191,7 @@
                 <td class="text-end">${formatPace(u.averagePaceMinPerKm)}</td>
                 <td class="text-end">${formatNumber(u.totalElevationM,1)}</td>
                 <td class="text-end">${formatDuration(u.totalRunningTimeS)}</td>
+                <td class="text-end">${formatNumber(u.averageCadence,0)}</td>
                 <td class="text-end">${formatNumber(u.averageHeartRate,1)}</td>
                 <td class="text-end">${formatNumber(u.longestRunKm,2)}</td>
                 <td class="text-end">${formatNumber(u.trainingLoad,2)}</td>

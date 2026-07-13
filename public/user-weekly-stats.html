@@ -53,7 +53,8 @@
             <p class="text-muted mb-0" id="weekRangeText">Week: -</p>
         </div>
         <div class="d-flex gap-2 align-items-center">
-            <select id="weekSelector" class="form-select" onchange="loadStats()"></select>
+            <label class="form-label mb-0 ms-3 me-2" for="dateSelector">Date</label>
+            <input type="date" id="dateSelector" class="form-control" onchange="loadStats()">
         </div>
     </div>
 
@@ -75,6 +76,7 @@
                         <th class="text-end">Avg Pace</th>
                         <th class="text-end">Elevation (m)</th>
                         <th class="text-end">Running Time</th>
+                        <th class="text-end">Avg Cadence</th>
                         <th class="text-end">Avg HR</th>
                         <th class="text-end">Longest Run (km)</th>
                         <th class="text-end">Training Load</th>
@@ -96,35 +98,25 @@
 
 <script>
     const API_BASE = "/runanalytics/api";
-    const MAX_WEEK_OPTIONS = 12;
     const query = new URLSearchParams(window.location.search);
     const preUserId = query.get('userId');
 
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('backToUsersLink').href = preUserId ? `users.html?userId=${encodeURIComponent(preUserId)}` : 'users.html';
-        initWeekSelector();
+        initializeDate();
         loadStats();
         document.getElementById('filterBtn').addEventListener('click', loadStats);
     });
 
-    function initWeekSelector() {
-        const weekSelector = document.getElementById('weekSelector');
-        const thisMonday = getMonday(new Date());
-        for (let i=0;i<MAX_WEEK_OPTIONS;i++){
-            const ws = new Date(thisMonday);
-            ws.setDate(thisMonday.getDate() - (i*7));
-            const we = new Date(ws); we.setDate(ws.getDate()+6);
-            const option = document.createElement('option');
-            option.value = toIsoDate(ws);
-            option.textContent = (i===0? 'Current Week' : `${i} Week${i>1?'s':''} Ago`) + ` (${formatShortDate(ws)} - ${formatShortDate(we)})`;
-            weekSelector.appendChild(option);
-        }
+    function initializeDate() {
+        document.getElementById('dateSelector').value = toIsoDate(new Date());
     }
 
     function loadStats(){
         hideError();
         showLoading(true);
-        const weekStart = document.getElementById('weekSelector').value;
+        const selectedDate = document.getElementById('dateSelector').value;
+        const weekStart = toIsoDate(getMonday(new Date(selectedDate)));
         const userIdParam = preUserId ? `&userId=${encodeURIComponent(preUserId)}` : '';
         fetch(`${API_BASE}/users/weekly-stats?weekStart=${encodeURIComponent(weekStart)}${userIdParam}`)
             .then(r=>{ if(!r.ok) return r.json().then(d=>{throw new Error(d.error||'Failed');}); return r.json(); })
@@ -140,7 +132,7 @@
 
     function renderTable(users){
         const tbody = document.getElementById('statsTableBody');
-        if (!users.length) { tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No data for selected week</td></tr>'; return; }
+        if (!users.length) { tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No data for selected week</td></tr>'; return; }
         tbody.innerHTML = users.map(u=>`
             <tr>
                 <td>${escapeHtml((u.firstname||'') + ' ' + (u.lastname||''))}</td>
@@ -149,6 +141,7 @@
                 <td class="text-end">${formatPace(u.averagePaceMinPerKm)}</td>
                 <td class="text-end">${formatNumber(u.totalElevationM,1)}</td>
                 <td class="text-end">${formatDuration(u.totalRunningTimeS)}</td>
+                <td class="text-end">${formatNumber(u.averageCadence,0)}</td>
                 <td class="text-end">${formatNumber(u.averageHeartRate,1)}</td>
                 <td class="text-end">${formatNumber(u.longestRunKm,2)}</td>
                 <td class="text-end">${formatNumber(u.trainingLoad,2)}</td>
