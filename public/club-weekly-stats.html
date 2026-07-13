@@ -55,6 +55,11 @@
         <div class="d-flex gap-2 align-items-center">
             <label class="form-label mb-0 me-2" for="memberSelect">Member</label>
             <select id="memberSelect" class="form-select" style="min-width:220px;" onchange="loadWeeklyStats()"><option value="ALL">All</option></select>
+            <label class="form-label mb-0 ms-3 me-2" for="allSelect">All weeks</label>
+            <select id="allSelect" class="form-select" onchange="loadWeeklyStats()" style="width:90px;">
+                <option value="NO" selected>No</option>
+                <option value="YES">Yes</option>
+            </select>
             <label class="form-label mb-0 ms-3 me-2" for="dateSelector">Date</label>
             <input type="date" id="dateSelector" class="form-control" onchange="loadWeeklyStats()">
         </div>
@@ -146,7 +151,13 @@
         hideError();
         showLoading(true);
         const selectedDate = document.getElementById('dateSelector').value;
-        const weekStart = toIsoDate(getMonday(new Date(selectedDate)));
+        const allSelect = document.getElementById('allSelect') ? document.getElementById('allSelect').value : 'NO';
+        let weekStart;
+        if (allSelect === 'YES') {
+            weekStart = 'ALL';
+        } else {
+            weekStart = toIsoDate(getMonday(new Date(selectedDate)));
+        }
 
         // build CSV of userIds from member select
         const sel = document.getElementById('memberSelect');
@@ -164,7 +175,7 @@
 
         if (userIds.length === 0) {
             // no members
-            document.getElementById('statsTableBody').innerHTML = '<tr><td colspan="10" class="text-center text-muted">No members in this club</td></tr>';
+            document.getElementById('statsTableBody').innerHTML = '<tr><td colspan="11" class="text-center text-muted">No members in this club</td></tr>';
             showLoading(false);
             return;
         }
@@ -172,18 +183,27 @@
         const csv = userIds.join(',');
         fetch(`${API_BASE}/users/weekly-stats?weekStart=${encodeURIComponent(weekStart)}&userIds=${encodeURIComponent(csv)}`)
             .then(r => { if (!r.ok) return r.json().then(d => { throw new Error(d.error || 'Failed')}); return r.json(); })
-            .then(payload => {
+                .then(payload => {
                 const users = Array.isArray(payload.users) ? payload.users : [];
-                document.getElementById('weekRangeText').textContent = `Week: ${payload.weekStart} to ${payload.weekEnd}`;
+                if (payload.weekStart === 'ALL') {
+                    document.getElementById('weekRangeText').textContent = 'All weeks';
+                } else {
+                    document.getElementById('weekRangeText').textContent = `Week: ${payload.weekStart} to ${payload.weekEnd}`;
+                }
                 renderTable(users);
                 showLoading(false);
             })
             .catch(e => { showLoading(false); showError(e.message || 'Failed to load weekly stats'); });
     }
 
+    document.getElementById("allSelect").addEventListener("change", function () {
+        document.getElementById("dateSelector").disabled = this.value === "YES";
+        loadWeeklyStats();
+    });
+
     function renderTable(users) {
         const tbody = document.getElementById('statsTableBody');
-        if (!users.length) { tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No data for selected week</td></tr>'; return; }
+        if (!users.length) { tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted">No data for selected week</td></tr>'; return; }
         tbody.innerHTML = users.map(u => `
             <tr>
                 <td>${escapeHtml(u.weekStart || '')}</td>
