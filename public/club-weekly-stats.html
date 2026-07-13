@@ -36,6 +36,8 @@
             color: #555;
             margin: 0 5px;
         }
+        .sortable { cursor: pointer; user-select:none; }
+        .sortable .sort-indicator { margin-left:6px; font-size:0.8em; }
     </style>
 </head>
 <body>
@@ -64,6 +66,18 @@
             <input type="date" id="dateSelector" class="form-control" onchange="loadWeeklyStats()">
         </div>
     </div>
+    <div class="d-flex gap-2 align-items-center mt-2">
+        <!-- quick client-side filter -->
+        <label class="form-label mb-0 ms-3 me-2" for="searchInput">Search</label>
+        <input id="searchInput" class="form-control ms-3" style="width:220px;" placeholder="Search runner or week" oninput="onFilterChange()" />
+        <label class="form-label mb-0 ms-3 me-2" for="pageSizeSelect">Page</label>
+        <select id="pageSizeSelect" class="form-select" style="width:90px;" onchange="onPageSizeChange()">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+        </select>
+    </div>
 
     <div id="errorAlert" class="alert alert-danger error-alert" role="alert"></div>
     <div id="loadingSpinner" class="loading-spinner text-center py-3">
@@ -76,19 +90,19 @@
             <div class="table-responsive">
                 <table class="table table-striped">
                     <thead>
-                    <tr>
-                        <th>Week</th>
-                        <th>Runner</th>
-                        <th class="text-end">Runs</th>
-                        <th class="text-end">Distance (km)</th>
-                        <th class="text-end">Avg Pace</th>
-                        <th class="text-end">Elevation (m)</th>
-                        <th class="text-end">Running Time</th>
-                        <th class="text-end">Avg Cadence</th>
-                        <th class="text-end">Avg HR</th>
-                        <th class="text-end">Longest Run (km)</th>
-                        <th class="text-end">Training Load</th>
-                    </tr>
+                        <tr>
+                            <th class="sortable" data-sort="week">Week</th>
+                            <th class="sortable">Runner</th>
+                            <th class="sortable text-end" data-sort="runs">Runs</th>
+                            <th class="sortable text-end" data-sort="distance">Distance (km)</th>
+                            <th class="sortable text-end" data-sort="pace">Avg Pace</th>
+                            <th class="sortable text-end" data-sort="elevation">Elevation (m)</th>
+                            <th class="sortable text-end" data-sort="time">Running Time</th>
+                            <th class="sortable text-end" data-sort="cadence">Avg Cadence</th>
+                            <th class="sortable text-end" data-sort="hr">Avg HR</th>
+                            <th class="sortable text-end" data-sort="longest">Longest Run (km)</th>
+                            <th class="sortable text-end" data-sort="load">Training Load</th>
+                        </tr>
                     </thead>
                     <tbody id="statsTableBody"></tbody>
                 </table>
@@ -120,6 +134,15 @@
         document.getElementById('backToClubsLink').href = userId ? `clubs.html?userId=${encodeURIComponent(userId)}` : 'clubs.html';
         initializeDate();
         loadClubMembers();
+        // initialize client-side paging/filtering globals
+        window._club_allRows = [];
+        window._club_filteredRows = [];
+        window._club_currentPage = 1;
+        window._club_pageSize = 25;
+        // initialize table sorting
+        window._club_sortKey = null; // e.g. 'week','runner','runs','distance','pace','elevation','time','cadence','hr','longest','load'
+        window._club_sortDir = 'desc'; // 'asc' or 'desc'
+        initTableSorting();
     });
 
     function initializeDate() {
@@ -185,12 +208,16 @@
             .then(r => { if (!r.ok) return r.json().then(d => { throw new Error(d.error || 'Failed')}); return r.json(); })
                 .then(payload => {
                 const users = Array.isArray(payload.users) ? payload.users : [];
+                // store full dataset for client-side filtering/paging
+                window._club_allRows = users;
+                window._club_currentPage = 1;
+                window._club_pageSize = parseInt(document.getElementById('pageSizeSelect') ? document.getElementById('pageSizeSelect').value : 25, 10);
+                applyFiltersAndRender();
                 if (payload.weekStart === 'ALL') {
                     document.getElementById('weekRangeText').textContent = 'All weeks';
                 } else {
                     document.getElementById('weekRangeText').textContent = `Week: ${payload.weekStart} to ${payload.weekEnd}`;
                 }
-                renderTable(users);
                 showLoading(false);
             })
             .catch(e => { showLoading(false); showError(e.message || 'Failed to load weekly stats'); });
@@ -200,6 +227,137 @@
         document.getElementById("dateSelector").disabled = this.value === "YES";
         loadWeeklyStats();
     });
+
+    // filter & paging handlers
+    function onFilterChange() {
+        window._club_currentPage = 1;
+        applyFiltersAndRender();
+    }
+
+    function onPageSizeChange() {
+        const s = parseInt(document.getElementById('pageSizeSelect').value, 10) || 25;
+        window._club_pageSize = s;
+        window._club_currentPage = 1;
+        applyFiltersAndRender();
+    }
+
+    function applyFiltersAndRender() {
+        const search = (document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase().trim() : '');
+        const all = window._club_allRows || [];
+        // filter by search (name, weekStart)
+        window._club_filteredRows = all.filter(u => {
+            if (!search) return true;
+            const fullname = ((u.runnerName || '') + ' ' + (u.firstname||'') + ' ' + (u.lastname||'')).toLowerCase();
+            if (fullname.includes(search)) return true;
+            if ((u.weekStart || '').toLowerCase().includes(search)) return true;
+            return false;
+        });
+
+        const total = window._club_filteredRows.length;
+        const pageSize = window._club_pageSize || 25;
+        const totalPages = Math.max(1, Math.ceil(total / pageSize));
+        if (window._club_currentPage > totalPages) window._club_currentPage = totalPages;
+        if (window._club_currentPage < 1) window._club_currentPage = 1;
+        const startIdx = (window._club_currentPage - 1) * pageSize;
+        // apply sorting if configured
+        if (window._club_sortKey) {
+            const key = window._club_sortKey;
+            const dir = window._club_sortDir === 'asc' ? 1 : -1;
+            window._club_filteredRows.sort((a,b) => {
+                // compute comparable values
+                let va, vb;
+                if (key === 'runner') {
+                    va = ((a.runnerName || '') + ' ' + (a.firstname||'') + ' ' + (a.lastname||'')).toString().toLowerCase();
+                    vb = ((b.runnerName || '') + ' ' + (b.firstname||'') + ' ' + (b.lastname||'')).toString().toLowerCase();
+                    if (va < vb) return -1 * dir; if (va > vb) return 1 * dir; return 0;
+                }
+                if (key === 'week') {
+                    va = a.weekStart || '';
+                    vb = b.weekStart || '';
+                    // ISO dates sort correctly as strings; newest first for desc
+                    if (va < vb) return -1 * dir; if (va > vb) return 1 * dir; return 0;
+                }
+                // numeric keys mapping
+                const map = {
+                    'runs':'runCount', 'distance':'totalDistanceKm', 'pace':'averagePaceMinPerKm', 'elevation':'totalElevationM',
+                    'time':'totalRunningTimeS','cadence':'averageCadence','hr':'averageHeartRate','longest':'longestRunKm','load':'trainingLoad'
+                };
+                const prop = map[key] || key;
+                va = a[prop] == null ? Number.NEGATIVE_INFINITY : Number(a[prop]);
+                vb = b[prop] == null ? Number.NEGATIVE_INFINITY : Number(b[prop]);
+                if (va < vb) return -1 * dir; if (va > vb) return 1 * dir; return 0;
+            });
+        }
+
+        const pageRows = window._club_filteredRows.slice(startIdx, startIdx + pageSize);
+
+        renderTable(pageRows);
+        renderPagination(total, totalPages);
+    }
+
+    function renderPagination(total, totalPages) {
+        let pc = document.getElementById('paginationControls');
+        if (!pc) {
+            pc = document.createElement('div');
+            pc.id = 'paginationControls';
+            pc.className = 'mt-2 d-flex justify-content-between align-items-center';
+            const container = document.querySelector('.card-body');
+            container.insertAdjacentElement('beforeend', pc);
+        }
+        const cur = window._club_currentPage || 1;
+        const pageSize = window._club_pageSize || 25;
+        const start = ((cur - 1) * pageSize) + 1;
+        const end = Math.min(total, cur * pageSize);
+        const left = `<div class="text-muted">Showing ${total===0?0:start} - ${total===0?0:end} of ${total}</div>`;
+        // build simple prev/next with current page indicator
+        const prevDisabled = cur <= 1 ? 'disabled' : '';
+        const nextDisabled = cur >= totalPages ? 'disabled' : '';
+        const middle = `<div class="btn-group" role="group">
+            <button class="btn btn-sm btn-outline-primary" ${prevDisabled} onclick="changePage(${cur-1})">Prev</button>
+            <button class="btn btn-sm btn-light" disabled>Page ${cur} / ${totalPages}</button>
+            <button class="btn btn-sm btn-outline-primary" ${nextDisabled} onclick="changePage(${cur+1})">Next</button>
+        </div>`;
+        pc.innerHTML = `<div class='d-flex w-100 justify-content-between'>${left}${middle}</div>`;
+    }
+
+    function changePage(n) {
+        window._club_currentPage = Math.max(1, n);
+        applyFiltersAndRender();
+    }
+
+    // sorting initialization and helpers
+    function initTableSorting() {
+        const ths = document.querySelectorAll('th.sortable');
+        ths.forEach(th => {
+            // store label for indicator updates
+            if (!th.dataset.label) th.dataset.label = th.textContent.trim();
+            th.addEventListener('click', () => {
+                const key = th.dataset.sort || (th.dataset.label.toLowerCase().startsWith('runner') ? 'runner' : th.dataset.label.toLowerCase());
+                if (window._club_sortKey === key) {
+                    window._club_sortDir = window._club_sortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    window._club_sortKey = key;
+                    window._club_sortDir = 'asc';
+                }
+                updateSortIndicators();
+                applyFiltersAndRender();
+            });
+        });
+        updateSortIndicators();
+    }
+
+    function updateSortIndicators() {
+        const ths = document.querySelectorAll('th.sortable');
+        ths.forEach(th => {
+            const label = th.dataset.label || th.textContent.trim();
+            let indicator = '';
+            const key = th.dataset.sort || (label.toLowerCase().startsWith('runner') ? 'runner' : label.toLowerCase());
+            if (window._club_sortKey === key) {
+                indicator = window._club_sortDir === 'asc' ? ' ▲' : ' ▼';
+            }
+            th.textContent = label + indicator;
+        });
+    }
 
     function renderTable(users) {
         const tbody = document.getElementById('statsTableBody');

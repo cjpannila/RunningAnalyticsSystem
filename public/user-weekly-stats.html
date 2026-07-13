@@ -16,6 +16,8 @@
         .leaderboard-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
         .loading-spinner, .error-alert, .empty-state { display:none; }
         table tbody tr td { vertical-align: middle; }
+        .sortable { cursor: pointer; user-select: none; }
+        .sortable .sort-indicator { margin-left:6px; font-size:0.8em; }
         footer {
             background: #333;
             color: #aaa;
@@ -62,6 +64,18 @@
             <input type="date" id="dateSelector" class="form-control" onchange="loadStats()">
         </div>
     </div>
+    <div class="d-flex gap-2 align-items-center mt-2">
+        <!-- search by week only, page size and simple paging -->
+        <label class="form-label mb-0 ms-3 me-2" for="searchInput">Search</label>
+        <input id="searchInput" class="form-control ms-3" style="width:220px;" placeholder="Filter by week" oninput="onFilterChange()" />
+        <label class="form-label mb-0 ms-3 me-2" for="pageSizeSelect">Page</label>
+        <select id="pageSizeSelect" class="form-select" style="width:90px;" onchange="onPageSizeChange()">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+        </select>
+    </div>
 
     <div id="errorAlert" class="alert alert-danger error-alert" role="alert"></div>
     <div id="loadingSpinner" class="loading-spinner text-center py-3">
@@ -75,17 +89,17 @@
                 <table class="table table-striped">
                     <thead>
                     <tr>
-                        <th>Week</th>
-                        <th>Runner</th>
-                        <th class="text-end">Runs</th>
-                        <th class="text-end">Distance (km)</th>
-                        <th class="text-end">Avg Pace</th>
-                        <th class="text-end">Elevation (m)</th>
-                        <th class="text-end">Running Time</th>
-                        <th class="text-end">Avg Cadence</th>
-                        <th class="text-end">Avg HR</th>
-                        <th class="text-end">Longest Run (km)</th>
-                        <th class="text-end">Training Load</th>
+                        <th class="sortable" data-sort="week">Week</th>
+                        <th class="sortable" data-sort="runner">Runner</th>
+                        <th class="sortable text-end" data-sort="runs">Runs</th>
+                        <th class="sortable text-end" data-sort="distance">Distance (km)</th>
+                        <th class="sortable text-end" data-sort="pace">Avg Pace</th>
+                        <th class="sortable text-end" data-sort="elevation">Elevation (m)</th>
+                        <th class="sortable text-end" data-sort="time">Running Time</th>
+                        <th class="sortable text-end" data-sort="cadence">Avg Cadence</th>
+                        <th class="sortable text-end" data-sort="hr">Avg HR</th>
+                        <th class="sortable text-end" data-sort="longest">Longest Run (km)</th>
+                        <th class="sortable text-end" data-sort="load">Training Load</th>
                     </tr>
                     </thead>
                     <tbody id="statsTableBody"></tbody>
@@ -110,6 +124,14 @@
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('backToUsersLink').href = preUserId ? `users.html?userId=${encodeURIComponent(preUserId)}` : 'users.html';
         initializeDate();
+        // client-side paging/filtering globals
+        window._user_allRows = [];
+        window._user_filteredRows = [];
+        window._user_currentPage = 1;
+        window._user_pageSize = 25;
+        window._user_sortKey = null;
+        window._user_sortDir = 'desc';
+        initTableSorting();
         loadStats();
         // optional filter button may not exist; keep defensive binding
         const fb = document.getElementById('filterBtn'); if (fb) fb.addEventListener('click', loadStats);
@@ -135,7 +157,12 @@
             .then(r=>{ if(!r.ok) return r.json().then(d=>{throw new Error(d.error||'Failed');}); return r.json(); })
             .then(payload=>{
                 renderWeekRange(payload.weekStart, payload.weekEnd);
-                renderTable(payload.users||[]);
+                const users = Array.isArray(payload.users) ? payload.users : [];
+                // store for client-side filtering/paging
+                window._user_allRows = users;
+                window._user_currentPage = 1;
+                window._user_pageSize = parseInt(document.getElementById('pageSizeSelect') ? document.getElementById('pageSizeSelect').value : 25, 10);
+                applyUserFiltersAndRender();
                 showLoading(false);
             })
             .catch(e=>{ showLoading(false); showError(e.message); });
@@ -173,6 +200,112 @@
         document.getElementById("dateSelector").disabled = this.value === "YES";
         loadStats();
     });
+
+    // user page filter & paging
+    function onFilterChange() {
+        window._user_currentPage = 1;
+        applyUserFiltersAndRender();
+    }
+
+    function onPageSizeChange() {
+        const s = parseInt(document.getElementById('pageSizeSelect').value, 10) || 25;
+        window._user_pageSize = s;
+        window._user_currentPage = 1;
+        applyUserFiltersAndRender();
+    }
+
+    function applyUserFiltersAndRender() {
+        const search = (document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase().trim() : '');
+        const all = window._user_allRows || [];
+        // filter by weekStart only
+        window._user_filteredRows = all.filter(u => {
+            if (!search) return true;
+            return (u.weekStart || '').toLowerCase().includes(search);
+        });
+
+        // sorting
+        if (window._user_sortKey) {
+            const key = window._user_sortKey; const dir = window._user_sortDir === 'asc' ? 1 : -1;
+            window._user_filteredRows.sort((a,b)=>{
+                if (key === 'runner') {
+                    const va = ((a.firstname||'') + ' ' + (a.lastname||'')).toLowerCase();
+                    const vb = ((b.firstname||'') + ' ' + (b.lastname||'')).toLowerCase();
+                    if (va < vb) return -1 * dir; if (va > vb) return 1 * dir; return 0;
+                }
+                if (key === 'week') {
+                    const va = a.weekStart || ''; const vb = b.weekStart || '';
+                    if (va < vb) return -1 * dir; if (va > vb) return 1 * dir; return 0;
+                }
+                const map = {'runs':'runCount','distance':'totalDistanceKm','pace':'averagePaceMinPerKm','elevation':'totalElevationM','time':'totalRunningTimeS','cadence':'averageCadence','hr':'averageHeartRate','longest':'longestRunKm','load':'trainingLoad'};
+                const prop = map[key] || key;
+                const va = a[prop] == null ? Number.NEGATIVE_INFINITY : Number(a[prop]);
+                const vb = b[prop] == null ? Number.NEGATIVE_INFINITY : Number(b[prop]);
+                if (va < vb) return -1 * dir; if (va > vb) return 1 * dir; return 0;
+            });
+        }
+
+        const total = window._user_filteredRows.length;
+        const pageSize = window._user_pageSize || 25;
+        const totalPages = Math.max(1, Math.ceil(total / pageSize));
+        if (window._user_currentPage > totalPages) window._user_currentPage = totalPages;
+        if (window._user_currentPage < 1) window._user_currentPage = 1;
+        const startIdx = (window._user_currentPage - 1) * pageSize;
+        const pageRows = window._user_filteredRows.slice(startIdx, startIdx + pageSize);
+        renderTable(pageRows);
+        renderUserPagination(total, totalPages);
+    }
+
+    function renderUserPagination(total, totalPages) {
+        let pc = document.getElementById('userPaginationControls');
+        if (!pc) {
+            pc = document.createElement('div'); pc.id = 'userPaginationControls'; pc.className = 'mt-2 d-flex justify-content-between align-items-center';
+            const container = document.querySelector('.card-body'); container.insertAdjacentElement('beforeend', pc);
+        }
+        const cur = window._user_currentPage || 1; const pageSize = window._user_pageSize || 25;
+        const start = ((cur - 1) * pageSize) + 1; const end = Math.min(total, cur * pageSize);
+        const left = `<div class="text-muted">Showing ${total===0?0:start} - ${total===0?0:end} of ${total}</div>`;
+        const prevDisabled = cur <= 1 ? 'disabled' : '';
+        const nextDisabled = cur >= totalPages ? 'disabled' : '';
+        const middle = `<div class="btn-group" role="group">
+            <button class="btn btn-sm btn-outline-primary" ${prevDisabled} onclick="userChangePage(${cur-1})">Prev</button>
+            <button class="btn btn-sm btn-light" disabled>Page ${cur} / ${totalPages}</button>
+            <button class="btn btn-sm btn-outline-primary" ${nextDisabled} onclick="userChangePage(${cur+1})">Next</button>
+        </div>`;
+        pc.innerHTML = `<div class='d-flex w-100 justify-content-between'>${left}${middle}</div>`;
+    }
+
+    function userChangePage(n) { window._user_currentPage = Math.max(1, n); applyUserFiltersAndRender(); }
+
+    // sorting for user page
+    function initTableSorting() {
+        const ths = document.querySelectorAll('table thead th');
+        ths.forEach(th => {
+            // store original label to avoid repeated indicator append
+            if (!th.dataset.label) th.dataset.label = th.textContent.trim();
+            const hasSortKey = !!th.dataset.sort;
+            if (hasSortKey) {
+                th.addEventListener('click', () => {
+                    const key = th.dataset.sort;
+                    if (window._user_sortKey === key) window._user_sortDir = window._user_sortDir === 'asc' ? 'desc' : 'asc';
+                    else { window._user_sortKey = key; window._user_sortDir = 'asc'; }
+                    updateSortIndicators();
+                    applyUserFiltersAndRender();
+                });
+            }
+        });
+        updateSortIndicators();
+    }
+
+    function updateSortIndicators() {
+        const ths = document.querySelectorAll('table thead th');
+        ths.forEach(th => {
+            const label = th.dataset.label || th.textContent.trim();
+            let indicator = '';
+            const key = th.dataset.sort || null;
+            if (window._user_sortKey === key) indicator = window._user_sortDir === 'asc' ? ' ▲' : ' ▼';
+            th.textContent = label + indicator;
+        });
+    }
 
     function formatNumber(v,d){ if (v===null||v===undefined) return '-'; return Number(v).toFixed(d); }
     function formatDuration(s){ if(!s) return '0h 0m 0s'; const sec = Number(s); const h=Math.floor(sec/3600); const m=Math.floor((sec%3600)/60); const se=sec%60; return `${h}h ${m}m ${se}s`; }
