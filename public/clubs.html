@@ -221,7 +221,10 @@
                 <td>${club.country || '-'}</td>
                 <td>${club.memberCount || '-'}</td>
                 <td>${club.isPrivate ? '<i class="bi bi-lock-fill text-danger"></i> Private' : '<i class="bi bi-unlock-fill text-success"></i> Public'}</td>
-                <td><a class="btn btn-sm btn-outline-primary" href="${dashboardUrl}" target="_blank" ><i class="bi bi-bar-chart"></i> Weekly Stats</a></td>
+                <td>
+                    <a class="btn btn-sm btn-outline-primary me-1" href="${dashboardUrl}" target="_blank"><i class="bi bi-bar-chart"></i> Weekly Leaderboards</a>
+                    <a class="btn btn-sm btn-outline-secondary" href="club-weekly-stats.html?clubId=${encodeURIComponent(club.clubId)}&clubName=${encodeURIComponent(club.name || '')}" target="_blank"><i class="bi bi-list-check"></i> Weekly Stats</a>
+                </td>
             `;
             tbody.appendChild(row);
         });

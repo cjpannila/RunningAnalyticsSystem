@@ -166,6 +166,7 @@
                     <th>Action</th>
                     <th>Activities</th>
                     <th>Clubs</th>
+                    <th>Weekly Stats</th>
                 </tr>
             </thead>
             <tbody id="usersTableBody">
@@ -255,6 +256,11 @@
                 <td>
                     <a href="clubs.html?userId=${user.userId}" target="_blank" class="btn btn-sm btn-clubs">
                         Clubs
+                    </a>
+                </td>
+                <td>
+                    <a href="user-weekly-stats.html?userId=${user.userId}&firstname=${encodeURIComponent(user.firstname||'')}&lastname=${encodeURIComponent(user.lastname||'')}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        Weekly Stats
                     </a>
                 </td>
             `;

@@ -8,6 +8,7 @@ import com.cjpannila.runanalytics.entities.User;
 import com.cjpannila.runanalytics.entities.UserClub;
 import com.cjpannila.runanalytics.repositories.ClubRepository;
 import com.cjpannila.runanalytics.repositories.UserClubRepository;
+import com.cjpannila.runanalytics.dto.ClubMemberDto;
 import com.cjpannila.runanalytics.service.ClubLeaderboardService;
 import com.cjpannila.runanalytics.service.UserService;
 import com.cjpannila.runanalytics.repositories.UserRepository;
@@ -58,6 +59,26 @@ public class ClubController {
         this.userClubRepository = userClubRepository;
         this.clubLeaderboardService = clubLeaderboardService;
         this.restTemplate = restTemplate;
+    }
+
+    @GetMapping(value = "/clubs/{clubId}/members")
+    public ResponseEntity<?> getClubMembers(@PathVariable Long clubId) {
+        try {
+            List<UserClub> userClubs = userClubRepository.findById_ClubId(clubId);
+            List<ClubMemberDto> members = new ArrayList<>();
+            for (UserClub uc : userClubs) {
+                if (uc.getUser() == null) continue;
+                members.add(ClubMemberDto.builder()
+                        .userId(uc.getUser().getUserId())
+                        .firstname(uc.getUser().getFirstname())
+                        .lastname(uc.getUser().getLastname())
+                        .build());
+            }
+            return ResponseEntity.ok(members);
+        } catch (Exception e) {
+            logger.error("Error fetching club members for club: {}", clubId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to fetch club members"));
+        }
     }
 
     @GetMapping(value = "/clubs/{clubId}/weekly-stats")

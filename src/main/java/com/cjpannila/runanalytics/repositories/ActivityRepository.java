@@ -28,5 +28,30 @@ public interface ActivityRepository extends CrudRepository<Activity, Long> {
     List<Activity> findClubRunActivitiesForWeek(@Param("clubId") Long clubId,
                                                 @Param("weekStart") LocalDateTime weekStart,
                                                 @Param("weekEndExclusive") LocalDateTime weekEndExclusive);
+
+    @Query("""
+            SELECT a
+            FROM Activity a
+            WHERE a.user.userId = :userId
+            AND a.activityType = 'Run'
+            AND a.startTime BETWEEN :from AND :to
+            """)
+    List<Activity> findRunningActivitiesForDateRange(
+            Long userId,
+            LocalDateTime from,
+            LocalDateTime to);
+
+    @Query("""
+            SELECT AVG(a.avgHeartrateBpm)
+            FROM Activity a
+            WHERE a.user.userId = :userId
+            AND a.activityType = 'Run'
+            AND a.avgHeartrateBpm IS NOT NULL
+            AND a.startTime BETWEEN :from AND :to
+            """)
+    Double getAverageHeartRateForDateRange(
+            Long userId,
+            LocalDateTime from,
+            LocalDateTime to);
 }
 
