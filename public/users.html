@@ -139,10 +139,6 @@
         </div>
     </div>
 
-    <div class="alert alert-info" role="alert">
-        Click "Get Token" to retrieve or refresh the access token for each user.
-    </div>
-
     <div id="errorAlert" class="alert alert-danger error-alert" role="alert"></div>
     <div id="successAlert" class="alert alert-success success-alert" role="alert"></div>
 
@@ -166,6 +162,7 @@
                     <th>Action</th>
                     <th>Activities</th>
                     <th>Clubs</th>
+                    <th>Weekly Stats</th>
                 </tr>
             </thead>
             <tbody id="usersTableBody">
@@ -243,18 +240,28 @@
                 <td>${user.country || '-'}</td>
                 <td>${user.sex || '-'}</td>
                 <td>
-                    <button class="btn btn-sm btn-get-token me-2" onclick="getAccessToken('${user.userId}', '${user.firstname} ${user.lastname}')">
+                    <button class="btn btn-sm btn-get-token me-2"
+                    onclick="getAccessToken('${user.userId}', '${user.firstname} ${user.lastname}')"
+                    title="Get Access Token for ${user.firstname} ${user.lastname}">
                         Get Token
                     </button>
                 </td>
                 <td>
-                    <a href="activities.html?userId=${user.userId}" target="_blank" class="btn btn-sm btn-activities">
+                    <a href="activities.html?userId=${user.userId}" class="btn btn-sm btn-activities"
+                    title="View Activities for ${user.firstname} ${user.lastname}">
                         Activities
                     </a>
                 </td>
                 <td>
-                    <a href="clubs.html?userId=${user.userId}" target="_blank" class="btn btn-sm btn-clubs">
+                    <a href="clubs.html?userId=${user.userId}" class="btn btn-sm btn-clubs"
+                    title="View Clubs for ${user.firstname} ${user.lastname}">
                         Clubs
+                    </a>
+                </td>
+                <td>
+                    <a href="user-weekly-stats.html?userId=${user.userId}&firstname=${encodeURIComponent(user.firstname||'')}&lastname=${encodeURIComponent(user.lastname||'')}" class="btn btn-sm btn-outline-primary"
+                    title="View Weekly Stats for ${user.firstname} ${user.lastname}">
+                        Weekly Stats
                     </a>
                 </td>
             `;

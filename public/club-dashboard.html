@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Club Weekly Dashboard - Running Analytics System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --brand: #FC4C02;
+            --brand-dark: #e63c00;
+            --bg: #f8f9fa;
+        }
+
+        body {
+            background-color: var(--bg);
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand,
+        .navbar-brand:hover,
+        .navbar-text {
+            color: #fff !important;
+        }
+
+        .container-top {
+            margin-top: 100px;
+            margin-bottom: 50px;
+        }
+
+        .page-title {
+            color: var(--brand);
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .leaderboard-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+            height: 100%;
+        }
+
+        .leaderboard-card .card-header {
+            background-color: #fff8f5;
+            border-bottom: 1px solid #ffe0d2;
+            color: #7d2c0f;
+            font-weight: 600;
+        }
+
+        .loading-spinner,
+        .error-alert,
+        .empty-state {
+            display: none;
+        }
+
+        .table tbody tr td {
+            vertical-align: middle;
+        }
+
+        .rank-pill {
+            min-width: 34px;
+            display: inline-block;
+            text-align: center;
+            border-radius: 999px;
+            background: rgba(252, 76, 2, 0.15);
+            color: #8a2f0f;
+            padding: 2px 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        footer {
+            background: #333;
+            color: #aaa;
+            padding: 36px 20px 20px;
+            text-align: center;
+            margin-top: 60px;
+            font-size: 0.9rem;
+        }
+
+        .footer-divider {
+            color: #555;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand" id="backToClubsLink" href="clubs.html">
+            <i class="bi bi-arrow-left"></i>
+            Back to Clubs
+        </a>
+        <span class="navbar-text ms-auto">
+            <i class="bi bi-bar-chart-line"></i>
+            Club Dashboard
+        </span>
+    </div>
+</nav>
+
+<div class="container container-top">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+        <div>
+            <h1 class="page-title" id="clubNameTitle">Club Weekly Leaderboards</h1>
+            <p class="text-muted mb-0" id="weekRangeText">Week: -</p>
+        </div>
+        <div>
+            <label class="form-label mb-1" for="dateSelector">Select a date of week</label>
+            <input type="date" id="dateSelector" class="form-control" onchange="loadWeeklyStats()">
+        </div>
+    </div>
+
+    <div id="errorAlert" class="alert alert-danger error-alert" role="alert"></div>
+
+    <div id="loadingSpinner" class="loading-spinner text-center py-5">
+        <div class="spinner-border text-warning" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 mb-0">Loading weekly club statistics...</p>
+    </div>
+
+    <div id="emptyState" class="alert alert-info empty-state" role="alert">
+        No run activities found for this club in the selected week.
+    </div>
+
+    <div class="row g-3" id="leaderboardsRow">
+        <div class="col-lg-6">
+            <div class="card leaderboard-card">
+                <div class="card-header">Leaderboard Distance</div>
+                <div class="card-body p-0">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                        <tr>
+                            <th style="width: 80px;">Rank</th>
+                            <th>Runner</th>
+                            <th class="text-end">Distance</th>
+                        </tr>
+                        </thead>
+                        <tbody id="distanceLeaderboardBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card leaderboard-card">
+                <div class="card-header">Leaderboard Pace (Average)</div>
+                <div class="card-body p-0">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                        <tr>
+                            <th style="width: 80px;">Rank</th>
+                            <th>Runner</th>
+                            <th class="text-end">Pace</th>
+                        </tr>
+                        </thead>
+                        <tbody id="paceLeaderboardBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card leaderboard-card">
+                <div class="card-header">Leaderboard Elevation</div>
+                <div class="card-body p-0">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                        <tr>
+                            <th style="width: 80px;">Rank</th>
+                            <th>Runner</th>
+                            <th class="text-end">Elevation</th>
+                        </tr>
+                        </thead>
+                        <tbody id="elevationLeaderboardBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card leaderboard-card">
+                <div class="card-header">Leaderboard Running Time</div>
+                <div class="card-body p-0">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                        <tr>
+                            <th style="width: 80px;">Rank</th>
+                            <th>Runner</th>
+                            <th class="text-end">Running Time</th>
+                        </tr>
+                        </thead>
+                        <tbody id="timeLeaderboardBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="container">
+        <p style="margin: 0;">
+            <strong>Running Analytics System</strong>
+            <span class="footer-divider">•</span>
+            MSc Research Project
+        </p>
+        <p style="margin-top: 15px; margin-bottom: 0; font-size: 0.85rem;">
+            &copy; 2026 All rights reserved. | Chinthana Pannila
+        </p>
+    </div>
+</footer>
+
+<script>
+    const API_BASE = "/runanalytics/api";
+
+    const queryParams = new URLSearchParams(window.location.search);
+    const userId = queryParams.get("userId");
+    const clubId = queryParams.get("clubId");
+    const clubNameFromUrl = queryParams.get("clubName") || "Club Weekly Leaderboards";
+
+    let currentMembers = [];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        if (!clubId) {
+            showError("No club ID provided. Please return to the clubs page.");
+            toggleDataVisibility(false);
+            return;
+        }
+
+        document.getElementById("clubNameTitle").textContent = `${clubNameFromUrl} - Weekly Leaderboards`;
+        document.getElementById("backToClubsLink").href = userId
+            ? `clubs.html?userId=${encodeURIComponent(userId)}`
+            : "clubs.html";
+
+        initializeDatePicker();
+        loadWeeklyStats();
+    });
+
+    function initializeDatePicker() {
+        document.getElementById("dateSelector").value = toIsoDate(new Date());
+    }
+
+    function loadWeeklyStats() {
+        hideError();
+        showLoading(true);
+
+        const selectedDate = document.getElementById("dateSelector").value;
+        const weekStart = toIsoDate(getMonday(new Date(selectedDate)));
+        fetch(`${API_BASE}/clubs/${encodeURIComponent(clubId)}/weekly-stats?weekStart=${encodeURIComponent(weekStart)}`)
+            .then(response => {
+                if (!response.ok) {
+                    return response.json()
+                        .then(data => {
+                            throw new Error(data.error || "Failed to load club weekly stats.");
+                        })
+                        .catch(() => {
+                            throw new Error("Failed to load club weekly stats.");
+                        });
+                }
+                return response.json();
+            })
+            .then(payload => {
+                currentMembers = Array.isArray(payload.members) ? payload.members : [];
+                renderWeekRange(payload.weekStart, payload.weekEnd);
+                renderAllLeaderboards(currentMembers);
+                showLoading(false);
+            })
+            .catch(error => {
+                showLoading(false);
+                toggleDataVisibility(false);
+                showError(error.message);
+            });
+    }
+
+    function renderWeekRange(weekStart, weekEnd) {
+        if (!weekStart || !weekEnd) {
+            document.getElementById("weekRangeText").textContent = "Week: -";
+            return;
+        }
+        document.getElementById("weekRangeText").textContent = `Week: ${weekStart} to ${weekEnd}`;
+    }
+
+    function renderAllLeaderboards(members) {
+        const membersWithRuns = members.filter(member => Number(member.runCount) > 0);
+        const empty = membersWithRuns.length === 0;
+        document.getElementById("emptyState").style.display = empty ? "block" : "none";
+        toggleDataVisibility(!empty);
+
+        if (empty) {
+            clearTable("distanceLeaderboardBody", "No data for this week");
+            clearTable("paceLeaderboardBody", "No data for this week");
+            clearTable("elevationLeaderboardBody", "No data for this week");
+            clearTable("timeLeaderboardBody", "No data for this week");
+            return;
+        }
+
+        renderLeaderboard(
+            "distanceLeaderboardBody",
+            [...membersWithRuns].sort((a, b) => Number(b.totalDistanceKm || 0) - Number(a.totalDistanceKm || 0)),
+            member => `${formatNumber(member.totalDistanceKm, 2)} km`
+        );
+
+        renderLeaderboard(
+            "paceLeaderboardBody",
+            [...membersWithRuns]
+                .filter(member => member.averagePaceMinPerKm !== null && member.averagePaceMinPerKm !== undefined)
+                .sort((a, b) => Number(a.averagePaceMinPerKm) - Number(b.averagePaceMinPerKm)),
+            member => formatPace(member.averagePaceMinPerKm)
+        );
+
+        renderLeaderboard(
+            "elevationLeaderboardBody",
+            [...membersWithRuns].sort((a, b) => Number(b.totalElevationM || 0) - Number(a.totalElevationM || 0)),
+            member => `${formatNumber(member.totalElevationM, 1)} m`
+        );
+
+        renderLeaderboard(
+            "timeLeaderboardBody",
+            [...membersWithRuns].sort((a, b) => Number(b.totalRunningTimeS || 0) - Number(a.totalRunningTimeS || 0)),
+            member => formatDuration(member.totalRunningTimeS)
+        );
+    }
+
+    function renderLeaderboard(tableBodyId, sortedMembers, valueFormatter) {
+        const tbody = document.getElementById(tableBodyId);
+        if (!sortedMembers.length) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No run data for this metric</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = sortedMembers.map((member, index) => `
+            <tr>
+                <td><span class="rank-pill">#${index + 1}</span></td>
+                <td>${escapeHtml(member.runnerName || `Runner ${member.userId}`)}</td>
+                <td class="text-end">${valueFormatter(member)}</td>
+            </tr>
+        `).join("");
+    }
+
+    function clearTable(tableBodyId, message) {
+        const tbody = document.getElementById(tableBodyId);
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">${message}</td></tr>`;
+    }
+
+    function toggleDataVisibility(show) {
+        document.getElementById("leaderboardsRow").style.opacity = show ? "1" : "0.35";
+    }
+
+    function showLoading(show) {
+        document.getElementById("loadingSpinner").style.display = show ? "block" : "none";
+    }
+
+    function showError(message) {
+        const alert = document.getElementById("errorAlert");
+        alert.textContent = message;
+        alert.style.display = "block";
+    }
+
+    function hideError() {
+        document.getElementById("errorAlert").style.display = "none";
+    }
+
+    function getMonday(date) {
+        const copy = new Date(date);
+        const day = copy.getDay();
+        const diff = day === 0 ? -6 : 1 - day;
+        copy.setDate(copy.getDate() + diff);
+        copy.setHours(0, 0, 0, 0);
+        return copy;
+    }
+
+    function toIsoDate(date) {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        const dd = String(date.getDate()).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function formatShortDate(date) {
+        return date.toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "2-digit"
+        });
+    }
+
+    function formatNumber(value, decimals) {
+        const number = Number(value || 0);
+        return Number.isFinite(number) ? number.toFixed(decimals) : "0";
+    }
+
+    function formatDuration(seconds) {
+        const totalSeconds = Math.max(0, Number(seconds || 0));
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const remainingSeconds = Math.floor(totalSeconds % 60);
+        return `${hours}h ${minutes}m ${remainingSeconds}s`;
+    }
+
+    function formatPace(minPerKm) {
+        const numericPace = Number(minPerKm);
+        if (!Number.isFinite(numericPace) || numericPace <= 0) {
+            return "-";
+        }
+        const minutes = Math.floor(numericPace);
+        const seconds = Math.round((numericPace - minutes) * 60);
+        const normalizedMinutes = seconds === 60 ? minutes + 1 : minutes;
+        const normalizedSeconds = seconds === 60 ? 0 : seconds;
+        return `${normalizedMinutes}:${String(normalizedSeconds).padStart(2, "0")} min/km`;
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+</script>
+</body>
+</html>
+

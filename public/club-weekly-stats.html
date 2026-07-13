@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Club Weekly Stats - Running Analytics System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root { --brand: #FC4C02; --brand-dark: #e63c00; --bg: #f8f9fa; }
+        body { background-color: var(--bg); }
+        .navbar { background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%); }
+        .navbar-brand, .navbar-text { color: #fff !important; }
+        .container-top { margin-top: 100px; margin-bottom: 50px; }
+        .page-title { color: var(--brand); font-weight: 700; }
+        .leaderboard-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
+        .loading-spinner, .error-alert, .empty-state { display:none; }
+        table tbody tr td { vertical-align: middle; }
+        footer {
+            background: #333;
+            color: #aaa;
+            padding: 40px 20px 20px;
+            text-align: center;
+            margin-top: 60px;
+            font-size: 0.9rem;
+        }
+        footer a {
+            color: #FC4C02;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        footer a:hover {
+            color: #ff6b35;
+        }
+        .footer-divider {
+            color: #555;
+            margin: 0 5px;
+        }
+        .sortable { cursor: pointer; user-select:none; }
+        .sortable .sort-indicator { margin-left:6px; font-size:0.8em; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand" id="backToClubsLink" href="clubs.html"><i class="bi bi-arrow-left"></i> Back to Clubs</a>
+        <span class="navbar-text ms-auto"><i class="bi bi-people"></i> Club Weekly Stats</span>
+    </div>
+</nav>
+
+<div class="container container-top">
+    <div class="d-flex justify-content-between align-items-end mb-3">
+        <div>
+            <h1 class="page-title" id="clubTitle">Club Weekly Stats</h1>
+            <p class="text-muted mb-0" id="weekRangeText">Week: -</p>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <label class="form-label mb-0 me-2" for="memberSelect">Member</label>
+            <select id="memberSelect" class="form-select" style="min-width:220px;" onchange="loadWeeklyStats()"><option value="ALL">All</option></select>
+            <label class="form-label mb-0 ms-3 me-2" for="allSelect">All weeks</label>
+            <select id="allSelect" class="form-select" onchange="loadWeeklyStats()" style="width:90px;">
+                <option value="NO" selected>No</option>
+                <option value="YES">Yes</option>
+            </select>
+            <label class="form-label mb-0 ms-3 me-2" for="dateSelector">Date</label>
+            <input type="date" id="dateSelector" class="form-control" onchange="loadWeeklyStats()">
+        </div>
+    </div>
+    <div class="d-flex gap-2 align-items-center mt-2">
+        <!-- quick client-side filter -->
+        <label class="form-label mb-0 ms-3 me-2" for="searchInput">Search</label>
+        <input id="searchInput" class="form-control ms-3" style="width:220px;" placeholder="Search runner or week" oninput="onFilterChange()" />
+        <label class="form-label mb-0 ms-3 me-2" for="pageSizeSelect">Page</label>
+        <select id="pageSizeSelect" class="form-select" style="width:90px;" onchange="onPageSizeChange()">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+        </select>
+    </div>
+
+    <div id="errorAlert" class="alert alert-danger error-alert" role="alert"></div>
+    <div id="loadingSpinner" class="loading-spinner text-center py-3">
+        <div class="spinner-border text-warning" role="status"><span class="visually-hidden">Loading...</span></div>
+        <p class="mt-2 mb-0">Loading weekly stats...</p>
+    </div>
+
+    <div class="card leaderboard-card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="week">Week</th>
+                            <th class="sortable">Runner</th>
+                            <th class="sortable text-end" data-sort="runs">Runs</th>
+                            <th class="sortable text-end" data-sort="distance">Distance (km)</th>
+                            <th class="sortable text-end" data-sort="pace">Avg Pace</th>
+                            <th class="sortable text-end" data-sort="elevation">Elevation (m)</th>
+                            <th class="sortable text-end" data-sort="time">Running Time</th>
+                            <th class="sortable text-end" data-sort="cadence">Avg Cadence</th>
+                            <th class="sortable text-end" data-sort="hr">Avg HR</th>
+                            <th class="sortable text-end" data-sort="longest">Longest Run (km)</th>
+                            <th class="sortable text-end" data-sort="load">Training Load</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="container">
+        <p style="margin:0;"><strong>Running Analytics System</strong> <span class="footer-divider">•</span> MSc Research Project</p>
+        <p style="margin-top:10px; font-size:0.85rem;">&copy; 2026 All rights reserved. | Chinthana Pannila</p>
+    </div>
+</footer>
+
+<script>
+    const API_BASE = "/runanalytics/api";
+    const query = new URLSearchParams(window.location.search);
+    const clubId = query.get('clubId');
+    const userId = query.get('userId');
+    const clubNameFromUrl = query.get('clubName') || '';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!clubId) {
+            showError('No club ID provided. Please open from Clubs page.');
+            return;
+        }
+        document.getElementById('clubTitle').textContent = (clubNameFromUrl ? clubNameFromUrl + ' - ' : '') + 'Weekly Stats';
+        document.getElementById('backToClubsLink').href = userId ? `clubs.html?userId=${encodeURIComponent(userId)}` : 'clubs.html';
+        initializeDate();
+        loadClubMembers();
+        // initialize client-side paging/filtering globals
+        window._club_allRows = [];
+        window._club_filteredRows = [];
+        window._club_currentPage = 1;
+        window._club_pageSize = 25;
+        // initialize table sorting
+        window._club_sortKey = null; // e.g. 'week','runner','runs','distance','pace','elevation','time','cadence','hr','longest','load'
+        window._club_sortDir = 'desc'; // 'asc' or 'desc'
+        initTableSorting();
+    });
+
+    function initializeDate() {
+        document.getElementById('dateSelector').value = toIsoDate(new Date());
+    }
+
+    function loadClubMembers() {
+        fetch(`${API_BASE}/clubs/${encodeURIComponent(clubId)}/members`)
+            .then(r => r.ok ? r.json() : Promise.reject('Failed to load club members'))
+            .then(members => {
+                const sel = document.getElementById('memberSelect');
+                sel.innerHTML = '<option value="ALL">All</option>';
+                members.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.userId;
+                    opt.text = `${m.firstname || ''} ${m.lastname || ''}`.trim() || (`Runner ${m.userId}`);
+                    sel.appendChild(opt);
+                });
+                // if opened from clubs list with userId set, preselect
+                if (userId) {
+                    sel.value = userId;
+                }
+                loadWeeklyStats();
+            })
+            .catch(e => showError(typeof e === 'string' ? e : (e.message || 'Failed to load members')));
+    }
+
+    function loadWeeklyStats() {
+        hideError();
+        showLoading(true);
+        const selectedDate = document.getElementById('dateSelector').value;
+        const allSelect = document.getElementById('allSelect') ? document.getElementById('allSelect').value : 'NO';
+        let weekStart;
+        if (allSelect === 'YES') {
+            weekStart = 'ALL';
+        } else {
+            weekStart = toIsoDate(getMonday(new Date(selectedDate)));
+        }
+
+        // build CSV of userIds from member select
+        const sel = document.getElementById('memberSelect');
+        const selectedMember = sel.value;
+        let userIds = [];
+        if (selectedMember && selectedMember !== 'ALL') {
+            userIds.push(selectedMember);
+        } else {
+            // include all numeric option values
+            for (let i = 0; i < sel.options.length; i++) {
+                const v = sel.options[i].value;
+                if (v && v !== 'ALL') userIds.push(v);
+            }
+        }
+
+        if (userIds.length === 0) {
+            // no members
+            document.getElementById('statsTableBody').innerHTML = '<tr><td colspan="11" class="text-center text-muted">No members in this club</td></tr>';
+            showLoading(false);
+            return;
+        }
+
+        const csv = userIds.join(',');
+        fetch(`${API_BASE}/users/weekly-stats?weekStart=${encodeURIComponent(weekStart)}&userIds=${encodeURIComponent(csv)}`)
+            .then(r => { if (!r.ok) return r.json().then(d => { throw new Error(d.error || 'Failed')}); return r.json(); })
+                .then(payload => {
+                const users = Array.isArray(payload.users) ? payload.users : [];
+                // store full dataset for client-side filtering/paging
+                window._club_allRows = users;
+                window._club_currentPage = 1;
+                window._club_pageSize = parseInt(document.getElementById('pageSizeSelect') ? document.getElementById('pageSizeSelect').value : 25, 10);
+                applyFiltersAndRender();
+                if (payload.weekStart === 'ALL') {
+                    document.getElementById('weekRangeText').textContent = 'All weeks';
+                } else {
+                    document.getElementById('weekRangeText').textContent = `Week: ${payload.weekStart} to ${payload.weekEnd}`;
+                }
+                showLoading(false);
+            })
+            .catch(e => { showLoading(false); showError(e.message || 'Failed to load weekly stats'); });
+    }
+
+    document.getElementById("allSelect").addEventListener("change", function () {
+        document.getElementById("dateSelector").disabled = this.value === "YES";
+        loadWeeklyStats();
+    });
+
+    // filter & paging handlers
+    function onFilterChange() {
+        window._club_currentPage = 1;
+        applyFiltersAndRender();
+    }
+
+    function onPageSizeChange() {
+        const s = parseInt(document.getElementById('pageSizeSelect').value, 10) || 25;
+        window._club_pageSize = s;
+        window._club_currentPage = 1;
+        applyFiltersAndRender();
+    }
+
+    function applyFiltersAndRender() {
+        const search = (document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase().trim() : '');
+        const all = window._club_allRows || [];
+        // filter by search (name, weekStart)
+        window._club_filteredRows = all.filter(u => {
+            if (!search) return true;
+            const fullname = ((u.runnerName || '') + ' ' + (u.firstname||'') + ' ' + (u.lastname||'')).toLowerCase();
+            if (fullname.includes(search)) return true;
+            if ((u.weekStart || '').toLowerCase().includes(search)) return true;
+            return false;
+        });
+
+        const total = window._club_filteredRows.length;
+        const pageSize = window._club_pageSize || 25;
+        const totalPages = Math.max(1, Math.ceil(total / pageSize));
+        if (window._club_currentPage > totalPages) window._club_currentPage = totalPages;
+        if (window._club_currentPage < 1) window._club_currentPage = 1;
+        const startIdx = (window._club_currentPage - 1) * pageSize;
+        // apply sorting if configured
+        if (window._club_sortKey) {
+            const key = window._club_sortKey;
+            const dir = window._club_sortDir === 'asc' ? 1 : -1;
+            window._club_filteredRows.sort((a,b) => {
+                // compute comparable values
+                let va, vb;
+                if (key === 'runner') {
+                    va = ((a.runnerName || '') + ' ' + (a.firstname||'') + ' ' + (a.lastname||'')).toString().toLowerCase();
+                    vb = ((b.runnerName || '') + ' ' + (b.firstname||'') + ' ' + (b.lastname||'')).toString().toLowerCase();
+                    if (va < vb) return -1 * dir; if (va > vb) return 1 * dir; return 0;
+                }
+                if (key === 'week') {
+                    va = a.weekStart || '';
+                    vb = b.weekStart || '';
+                    // ISO dates sort correctly as strings; newest first for desc
+                    if (va < vb) return -1 * dir; if (va > vb) return 1 * dir; return 0;
+                }
+                // numeric keys mapping
+                const map = {
+                    'runs':'runCount', 'distance':'totalDistanceKm', 'pace':'averagePaceMinPerKm', 'elevation':'totalElevationM',
+                    'time':'totalRunningTimeS','cadence':'averageCadence','hr':'averageHeartRate','longest':'longestRunKm','load':'trainingLoad'
+                };
+                const prop = map[key] || key;
+                va = a[prop] == null ? Number.NEGATIVE_INFINITY : Number(a[prop]);
+                vb = b[prop] == null ? Number.NEGATIVE_INFINITY : Number(b[prop]);
+                if (va < vb) return -1 * dir; if (va > vb) return 1 * dir; return 0;
+            });
+        }
+
+        const pageRows = window._club_filteredRows.slice(startIdx, startIdx + pageSize);
+
+        renderTable(pageRows);
+        renderPagination(total, totalPages);
+    }
+
+    function renderPagination(total, totalPages) {
+        let pc = document.getElementById('paginationControls');
+        if (!pc) {
+            pc = document.createElement('div');
+            pc.id = 'paginationControls';
+            pc.className = 'mt-2 d-flex justify-content-between align-items-center';
+            const container = document.querySelector('.card-body');
+            container.insertAdjacentElement('beforeend', pc);
+        }
+        const cur = window._club_currentPage || 1;
+        const pageSize = window._club_pageSize || 25;
+        const start = ((cur - 1) * pageSize) + 1;
+        const end = Math.min(total, cur * pageSize);
+        const left = `<div class="text-muted">Showing ${total===0?0:start} - ${total===0?0:end} of ${total}</div>`;
+        // build simple prev/next with current page indicator
+        const prevDisabled = cur <= 1 ? 'disabled' : '';
+        const nextDisabled = cur >= totalPages ? 'disabled' : '';
+        const middle = `<div class="btn-group" role="group">
+            <button class="btn btn-sm btn-outline-primary" ${prevDisabled} onclick="changePage(${cur-1})">Prev</button>
+            <button class="btn btn-sm btn-light" disabled>Page ${cur} / ${totalPages}</button>
+            <button class="btn btn-sm btn-outline-primary" ${nextDisabled} onclick="changePage(${cur+1})">Next</button>
+        </div>`;
+        pc.innerHTML = `<div class='d-flex w-100 justify-content-between'>${left}${middle}</div>`;
+    }
+
+    function changePage(n) {
+        window._club_currentPage = Math.max(1, n);
+        applyFiltersAndRender();
+    }
+
+    // sorting initialization and helpers
+    function initTableSorting() {
+        const ths = document.querySelectorAll('th.sortable');
+        ths.forEach(th => {
+            // store label for indicator updates
+            if (!th.dataset.label) th.dataset.label = th.textContent.trim();
+            th.addEventListener('click', () => {
+                const key = th.dataset.sort || (th.dataset.label.toLowerCase().startsWith('runner') ? 'runner' : th.dataset.label.toLowerCase());
+                if (window._club_sortKey === key) {
+                    window._club_sortDir = window._club_sortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    window._club_sortKey = key;
+                    window._club_sortDir = 'asc';
+                }
+                updateSortIndicators();
+                applyFiltersAndRender();
+            });
+        });
+        updateSortIndicators();
+    }
+
+    function updateSortIndicators() {
+        const ths = document.querySelectorAll('th.sortable');
+        ths.forEach(th => {
+            const label = th.dataset.label || th.textContent.trim();
+            let indicator = '';
+            const key = th.dataset.sort || (label.toLowerCase().startsWith('runner') ? 'runner' : label.toLowerCase());
+            if (window._club_sortKey === key) {
+                indicator = window._club_sortDir === 'asc' ? ' ▲' : ' ▼';
+            }
+            th.textContent = label + indicator;
+        });
+    }
+
+    function renderTable(users) {
+        const tbody = document.getElementById('statsTableBody');
+        if (!users.length) { tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted">No data for selected week</td></tr>'; return; }
+        tbody.innerHTML = users.map(u => `
+            <tr>
+                <td>${escapeHtml(u.weekStart || '')}</td>
+                <td>${escapeHtml(u.runnerName || ((u.firstname||'') + ' ' + (u.lastname||'')) || `Runner ${u.userId}`)}</td>
+                <td class="text-end">${u.runCount||0}</td>
+                <td class="text-end">${formatNumber(u.totalDistanceKm,2)}</td>
+                <td class="text-end">${formatPace(u.averagePaceMinPerKm)}</td>
+                <td class="text-end">${formatNumber(u.totalElevationM,1)}</td>
+                <td class="text-end">${formatDuration(u.totalRunningTimeS)}</td>
+                <td class="text-end">${formatNumber(u.averageCadence,0)}</td>
+                <td class="text-end">${formatNumber(u.averageHeartRate,1)}</td>
+                <td class="text-end">${formatNumber(u.longestRunKm,2)}</td>
+                <td class="text-end">${formatNumber(u.trainingLoad,2)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function formatNumber(v,d){ if (v===null||v===undefined) return '-'; return Number(v).toFixed(d); }
+    function formatDuration(s){ if(!s) return '0h 0m 0s'; const sec = Number(s); const h=Math.floor(sec/3600); const m=Math.floor((sec%3600)/60); const se=sec%60; return `${h}h ${m}m ${se}s`; }
+    function formatPace(p){ if(!p || Number(p)<=0) return '-'; const m=Math.floor(p); const s=Math.round((p-m)*60); return `${m}:${String(s).padStart(2,'0')} min/km`; }
+    function showLoading(s){ document.getElementById('loadingSpinner').style.display = s? 'block':'none'; }
+    function showError(msg){ const a=document.getElementById('errorAlert'); a.textContent=msg; a.style.display='block'; }
+    function hideError(){ document.getElementById('errorAlert').style.display='none'; }
+    function getMonday(date){ const copy=new Date(date); const day=copy.getDay(); const diff=day===0?-6:1-day; copy.setDate(copy.getDate()+diff); copy.setHours(0,0,0,0); return copy; }
+    function toIsoDate(date){ const yyyy=date.getFullYear(); const mm=String(date.getMonth()+1).padStart(2,'0'); const dd=String(date.getDate()).padStart(2,'0'); return `${yyyy}-${mm}-${dd}`; }
+    function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#39;"); }
+</script>
+</body>
+</html>

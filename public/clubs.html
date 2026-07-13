@@ -108,7 +108,7 @@
 <div class="container container-top">
     <div class="row">
         <div class="col-md-12">
-            <h1>Your Running Clubs</h1>
+            <h1>User's Running Clubs</h1>
         </div>
     </div>
 
@@ -138,6 +138,7 @@
                     <th>Country</th>
                     <th>Members</th>
                     <th>Access</th>
+                    <th>Dashboard</th>
                 </tr>
             </thead>
             <tbody id="clubsTableBody">
@@ -187,7 +188,7 @@
                 return response.json();
             })
             .then(clubs => {
-                populateClubsTable(clubs);
+                populateClubsTable(clubs, userId);
                 showLoading(false);
                 if (clubs.length === 0) {
                     showSuccess('No clubs found for this user.');
@@ -200,17 +201,18 @@
             });
     }
 
-    function populateClubsTable(clubs) {
+    function populateClubsTable(clubs, userId) {
         const tbody = document.getElementById('clubsTableBody');
         tbody.innerHTML = '';
 
         if (clubs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No clubs found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No clubs found</td></tr>';
             return;
         }
 
         clubs.forEach(club => {
             const row = document.createElement('tr');
+            const dashboardUrl = `club-dashboard.html?userId=${encodeURIComponent(userId)}&clubId=${encodeURIComponent(club.clubId)}&clubName=${encodeURIComponent(club.name || '')}`;
             row.innerHTML = `
                 <td>${club.clubId}</td>
                 <td><strong>${club.name}</strong></td>
@@ -219,6 +221,12 @@
                 <td>${club.country || '-'}</td>
                 <td>${club.memberCount || '-'}</td>
                 <td>${club.isPrivate ? '<i class="bi bi-lock-fill text-danger"></i> Private' : '<i class="bi bi-unlock-fill text-success"></i> Public'}</td>
+                <td>
+                    <a class="btn btn-sm btn-outline-primary me-1" href="${dashboardUrl}"><i class="bi bi-bar-chart"></i> Weekly Leaderboards</a>
+                    <a class="btn btn-sm btn-outline-secondary"
+                    href="club-weekly-stats.html?clubId=${encodeURIComponent(club.clubId)}&clubName=${encodeURIComponent(club.name || '')}&userId=${encodeURIComponent(userId)}"
+                    title="View Weekly Stats for ${club.name || 'Club'}"><i class="bi bi-list-check"></i> Weekly Stats</a>
+                </td>
             `;
             tbody.appendChild(row);
         });
