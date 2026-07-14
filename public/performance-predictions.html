@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Predictions - Running Analytics System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root { --brand: #FC4C02; --brand-dark: #e63c00; --bg: #f8f9fa; }
+        body { background-color: var(--bg); }
+        .navbar { background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%); }
+        .navbar-brand, .navbar-text { color: #fff !important; }
+        .container-top { margin-top: 100px; margin-bottom: 50px; }
+        .page-title { color: var(--brand); font-weight: 700; }
+        .info-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
+        .column-badge { background: #f1f3f5; border-radius: 6px; font-size: 0.85rem; padding: 3px 8px; font-family: monospace; }
+        footer {
+            background: #333;
+            color: #aaa;
+            padding: 40px 20px 20px;
+            text-align: center;
+            margin-top: 60px;
+            font-size: 0.9rem;
+        }
+        footer a { color: #FC4C02; text-decoration: none; }
+        .footer-divider { color: #555; margin: 0 5px; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand" id="backLink" href="index.html"><i class="bi bi-arrow-left"></i> Back to Home</a>
+        <span class="navbar-text ms-auto"><i class="bi bi-graph-up-arrow"></i> Performance Predictions</span>
+    </div>
+</nav>
+
+<div class="container container-top">
+    <div class="mb-4">
+        <h1 class="page-title"><i class="bi me-2"></i>Performance Predictions</h1>
+        <p class="text-muted">Generate machine-learning based performance predictions.</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Generate card -->
+        <div class="col-lg-6">
+            <div class="card info-card h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-1"><i class="bi text-success me-2"></i>Training Dataset</h5>
+                    <p class="text-muted small mb-3">
+                        Exports <code>training_dataset.csv</code> containing weekly running statistics
+                        for all runners from the earliest recorded activity to the most recent.
+                        Each row represents one week for one user.
+                    </p>
+
+                    <div id="statusBox" class="alert d-none mb-2" role="alert"></div>
+
+                    <button id="generateBtn" class="btn btn-success" onclick="generateDataset()">
+                        Generate Training Dataset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columns card -->
+        <div class="col-lg-6">
+            <div class="card info-card h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3"><i class="bi text-primary me-2"></i>Generated Features</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="column-badge">week_start</span>
+                        <span class="column-badge">user_id</span>
+                        <span class="column-badge">run_count</span>
+                        <span class="column-badge">total_distance_km</span>
+                        <span class="column-badge">avg_pace_min_per_km</span>
+                        <span class="column-badge">total_elevation_m</span>
+                        <span class="column-badge">total_running_time_s</span>
+                        <span class="column-badge">avg_cadence</span>
+                        <span class="column-badge">avg_hr</span>
+                        <span class="column-badge">longest_run_km</span>
+                        <span class="column-badge">training_load</span>
+                    </div>
+                    <hr class="my-3">
+                    <div id="datasetSummary" class="small text-muted">
+                        <div><strong>Rows generated:</strong> <span id="rowsGeneratedValue">-</span></div>
+                        <div><strong>Activities used:</strong> <span id="activitiesUsedValue">-</span></div>
+                    </div>
+                    <hr class="my-3">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="container">
+        <p style="margin:0;"><strong>Running Analytics System</strong> <span class="footer-divider">•</span> MSc Research Project</p>
+        <p style="margin-top:10px; font-size:0.85rem;">&copy; 2026 All rights reserved. | Chinthana Pannila</p>
+    </div>
+</footer>
+
+<script>
+    const API_BASE = "/runanalytics/api";
+    const query = new URLSearchParams(window.location.search);
+    const preUserId = query.get('userId');
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (preUserId) {
+            document.getElementById('backLink').href = `users.html?userId=${encodeURIComponent(preUserId)}`;
+        }
+    });
+
+    function generateDataset() {
+        const btn = document.getElementById('generateBtn');
+        const statusBox = document.getElementById('statusBox');
+
+        // Show loading state
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Generating…';
+        statusBox.className = 'alert alert-info d-block';
+        statusBox.textContent = 'Querying all user activities across all weeks. This may take a while…';
+
+        fetch(`${API_BASE}/performance/training-dataset`)
+            .then(r => {
+                if (!r.ok) throw new Error(`Server error: ${r.status}`);
+                const rowsGenerated = r.headers.get('X-Rows-Generated') || '0';
+                const activitiesUsed = r.headers.get('X-Activities-Used') || '0';
+                return r.blob().then(blob => ({ blob, rowsGenerated, activitiesUsed }));
+            })
+            .then(({ blob, rowsGenerated, activitiesUsed }) => {
+                // Trigger file download
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'training_dataset.csv';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                statusBox.className = 'alert alert-success d-block';
+                statusBox.innerHTML = `Dataset generated and downloaded successfully`;
+                document.getElementById('rowsGeneratedValue').textContent = rowsGenerated;
+                document.getElementById('activitiesUsedValue').textContent = activitiesUsed;
+                btn.disabled = false;
+                btn.innerHTML = 'Generate Training Dataset';
+            })
+            .catch(err => {
+                statusBox.className = 'alert alert-danger d-block';
+                statusBox.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>Failed to generate dataset: ${err.message}`;
+                btn.disabled = false;
+                btn.innerHTML = 'Generate Training Dataset';
+            });
+    }
+</script>
+</body>
+</html>

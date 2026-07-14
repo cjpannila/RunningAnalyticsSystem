@@ -202,6 +202,24 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-lg-6">
+            <div class="card leaderboard-card">
+                <div class="card-header">Leaderboard Longest Run</div>
+                <div class="card-body p-0">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                        <tr>
+                            <th style="width: 80px;">Rank</th>
+                            <th>Runner</th>
+                            <th class="text-end">Longest Run</th>
+                        </tr>
+                        </thead>
+                        <tbody id="longestRunLeaderboardBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -299,6 +317,7 @@
             clearTable("paceLeaderboardBody", "No data for this week");
             clearTable("elevationLeaderboardBody", "No data for this week");
             clearTable("timeLeaderboardBody", "No data for this week");
+            clearTable("longestRunLeaderboardBody", "No data for this week");
             return;
         }
 
@@ -326,6 +345,14 @@
             "timeLeaderboardBody",
             [...membersWithRuns].sort((a, b) => Number(b.totalRunningTimeS || 0) - Number(a.totalRunningTimeS || 0)),
             member => formatDuration(member.totalRunningTimeS)
+        );
+
+        renderLeaderboard(
+            "longestRunLeaderboardBody",
+            [...membersWithRuns]
+                .filter(member => member.longestRunKm !== null && member.longestRunKm !== undefined)
+                .sort((a, b) => Number(b.longestRunKm || 0) - Number(a.longestRunKm || 0)),
+            member => `${formatNumber(member.longestRunKm, 2)} km`
         );
     }
 

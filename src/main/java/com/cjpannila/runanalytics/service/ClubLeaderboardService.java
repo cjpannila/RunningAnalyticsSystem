@@ -60,19 +60,16 @@ public class ClubLeaderboardService {
         );
 
         for (Activity activity : runActivities) {
-            if (activity.getUser() == null || activity.getUser().getUserId() == null) {
-                continue;
+            if (activity.getUser() != null && activity.getUser().getUserId() != null) {
+                AggregateStats aggregate = statsByUser.get(activity.getUser().getUserId());
+                if (aggregate != null) {
+                    aggregate.runCount += 1;
+                    aggregate.totalDistanceM += safeFloat(activity.getDistanceM());
+                    aggregate.totalElevationM += safeFloat(activity.getElevationGainM());
+                    aggregate.totalRunningTimeS += safeInt(activity.getMovingTimeS());
+                    aggregate.longestRunM = Math.max(aggregate.longestRunM, safeFloat(activity.getDistanceM()));
+                }
             }
-
-            AggregateStats aggregate = statsByUser.get(activity.getUser().getUserId());
-            if (aggregate == null) {
-                continue;
-            }
-
-            aggregate.runCount += 1;
-            aggregate.totalDistanceM += safeFloat(activity.getDistanceM());
-            aggregate.totalElevationM += safeFloat(activity.getElevationGainM());
-            aggregate.totalRunningTimeS += safeInt(activity.getMovingTimeS());
         }
 
         List<ClubMemberWeeklyStatsDto> memberStats = new ArrayList<>();
@@ -85,6 +82,7 @@ public class ClubLeaderboardService {
                     .averagePaceMinPerKm(calculatePace(aggregate.totalDistanceM, aggregate.totalRunningTimeS))
                     .totalElevationM(round(aggregate.totalElevationM, 1))
                     .totalRunningTimeS(aggregate.totalRunningTimeS)
+                    .longestRunKm(round(aggregate.longestRunM / 1000.0, 2))
                     .build());
         }
 
@@ -136,6 +134,7 @@ public class ClubLeaderboardService {
         private double totalDistanceM;
         private double totalElevationM;
         private long totalRunningTimeS;
+        private double longestRunM;
 
         private AggregateStats(Long userId, String runnerName) {
             this.userId = userId;
@@ -144,6 +143,7 @@ public class ClubLeaderboardService {
             this.totalDistanceM = 0;
             this.totalElevationM = 0;
             this.totalRunningTimeS = 0;
+            this.longestRunM = 0;
         }
     }
 }
