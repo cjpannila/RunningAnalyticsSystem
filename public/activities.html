@@ -237,8 +237,8 @@
                 <input id="distanceToInput" type="number" placeholder="Max" style="width: 55px;" oninput="applyFilters()">
                 <label for="activityTypeSelect">Activity Type</label>
                 <select id="activityTypeSelect" onchange="applyFilters()">
-                    <option value="All">All</option>
-                    <option value="Run" selected>Run</option>
+                    <option value="All" selected>All</option>
+                    <option value="Run">Run</option>
                     <option value="Ride">Ride</option>
                     <option value="Walk">Walk</option>
                 </select>
@@ -365,17 +365,15 @@
                 allActivities = activities || [];
                 filteredActivities = [...allActivities];
                 currentPage = 1;
-                //updateDashboardCards(allActivities);
-                //renderActivities();
+                updateDashboardCards(allActivities);
+                renderActivities();
                 showLoading(false);
                 if (!activities || activities.length === 0) {
                     showSuccess('No saved activities found for this user.');
                 }
                 clearFilters();
-                // To filter Runs only at first loading
-                applyFilters();
-                updateDashboardCards(filteredActivities);
-                renderActivities();
+                // Show all saved activities on initial load so the table isn't empty when non-Run activities exist.
+                document.getElementById('activityTypeSelect').value = 'All';
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -388,9 +386,12 @@
         const search = document.getElementById('searchInput').value.trim().toLowerCase();
         const dateFromInput = document.getElementById('dateFromInput').value;
         const dateToInput = document.getElementById('dateToInput').value;
-        const distanceFrom = document.getElementById('distanceFromInput').value;
-        const distanceTo = document.getElementById('distanceToInput').value;
-        const activityType = document.getElementById('activityTypeSelect').value;
+        const distanceFromInput = document.getElementById('distanceFromInput').value.trim();
+        const distanceToInput = document.getElementById('distanceToInput').value.trim();
+        const activityType = document.getElementById('activityTypeSelect').value.trim().toLowerCase();
+
+        const distanceFrom = distanceFromInput === '' ? null : Number(distanceFromInput);
+        const distanceTo = distanceToInput === '' ? null : Number(distanceToInput);
 
         const dateFrom = dateFromInput ? new Date(dateFromInput) : null;
         const dateTo = dateToInput ? new Date(dateToInput) : null;
@@ -414,18 +415,22 @@
                 }
             }
             // Distance range filter (inputs are in km)
-            if (distanceFrom !== null || distanceTo !== null ) {
+            if (distanceFrom !== null || distanceTo !== null) {
                 const distanceKm = (Number(activity.distanceM) || 0) / 1000;
-                if (distanceFrom !== null && distanceKm < distanceFrom) {
+                if (distanceFrom !== null && !Number.isNaN(distanceFrom) && distanceKm < distanceFrom) {
                     return false;
                 }
-                if (distanceTo !== null &&  distanceTo >= distanceFrom && distanceKm > distanceTo) {
+                if (distanceTo !== null && !Number.isNaN(distanceTo) && distanceKm > distanceTo) {
                     return false;
                 }
             }
             // Activity type filter
-            if (activityType && activityType !== 'All' && activity.activityType !== activityType) {
-                return false;
+            if (activityType && activityType !== 'all') {
+                const activityTypeValue = String(activity.activityType || '').trim().toLowerCase();
+                // Match exact type or common variants like "virtual run"
+                if (!activityTypeValue || (!activityTypeValue.includes(activityType) && activityTypeValue !== activityType)) {
+                    return false;
+                }
             }
             return true;
         });
@@ -440,7 +445,7 @@
         document.getElementById('dateToInput').value = '';
         document.getElementById('distanceFromInput').value = '';
         document.getElementById('distanceToInput').value = '';
-        document.getElementById('activityTypeSelect').value = 'Run';
+        document.getElementById('activityTypeSelect').value = 'All';
         document.getElementById('pageSizeSelect').value = '10';   // or your default
 
         currentPage = 1;
@@ -707,8 +712,8 @@
             ((a.avgCadence || 0) * 2).toFixed(0),
             ((a.avgSpeedMps || 0) * 3.6).toFixed(2),
             ((a.maxSpeedMps || 0) * 3.6).toFixed(2),
-            a.averageHeartrate ?? "-",
-            a.device ?? "-"
+            a.avgHeartrateBpm ?? "-",
+            a.deviceName ?? "-"
         ]);
 
         const csvContent = [
