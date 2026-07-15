@@ -3,6 +3,7 @@ package com.cjpannila.runanalytics.service;
 import com.cjpannila.runanalytics.controller.ClubController;
 import com.cjpannila.runanalytics.entities.Activity;
 import com.cjpannila.runanalytics.repositories.ActivityRepository;
+import com.cjpannila.runanalytics.util.Constants;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,6 +92,23 @@ public class AnalyticsService {
                 .sum() / 1000.0;
     }
 
+    // weekly distance in km
+    public double calculateTargetDistanceNextWeek(Long userId, LocalDate weekStart) {
+        logger.info("Calculating target distance for next week for userId: {}, weekStart: {}", userId, weekStart);
+        LocalDate nextWeekStart = weekStart.plusWeeks(1);
+        List<Activity> activities = getActivitiesForWeek(userId, nextWeekStart);
+        if (activities.isEmpty()) {
+            if (nextWeekStart.isAfter(LocalDate.now())) {
+                return 0;
+            } else {
+                return calculateTargetDistanceNextWeek(userId, nextWeekStart);
+            }
+        }
+        return activities.stream()
+                .mapToDouble(a -> a.getDistanceM() == null ? 0 : a.getDistanceM())
+                .sum() / 1000.0;
+    }
+
     //Longest run distance in km
     public double calculateLongestRun(Long userId, LocalDate weekStart) {
         logger.info("Calculating longest run for userId: {}, weekStart: {}", userId, weekStart);
@@ -119,6 +137,21 @@ public class AnalyticsService {
                 .orElse(0.0) * 2;
     }
 
+    public double calculateAllTimeAverageCadence(Long userId) {
+        logger.info("Calculating all-time average cadence for userId: {}", userId);
+        return nullToZero(activityRepository.getAllTimeAverageCadence(userId));
+    }
+
+    public double calculateAllTimeAverageHeartRate(Long userId) {
+        logger.info("Calculating all-time average heart rate for userId: {}", userId);
+        return nullToZero(activityRepository.getAllTimeAverageHeartRate(userId));
+    }
+
+    public double calculateAllTimeAverageElevationPerKm(Long userId) {
+        logger.info("Calculating all-time average elevation per km for userId: {}", userId);
+        return nullToZero(activityRepository.getAllTimeAverageElevationPerKm(userId));
+    }
+
     //Training Load > Sum of (Duration in minutes×Intensity Factor)
     //Intensity Factor=Average Heart Rate/Max Heart Rate
     public double calculateTrainingLoad(Long userId, LocalDate weekStart) {
@@ -127,12 +160,11 @@ public class AnalyticsService {
        if (activities.isEmpty()) {
             return 0.0;
         }
-        double maxHeartRate = 190.0; // estimated max HR (can be user-specific later)
         return activities.stream()
                 .filter(activity -> activity.getAvgHeartrateBpm() != null)
                 .mapToDouble(activity ->
                         (activity.getMovingTimeS() / 60.0) *
-                                (activity.getAvgHeartrateBpm() / maxHeartRate)
+                                (activity.getAvgHeartrateBpm() / Constants.MAX_HEART_RATE)
                 )
                 .sum();
     }
@@ -172,5 +204,9 @@ public class AnalyticsService {
                 from,
                 to
         );
+    }
+
+    private double nullToZero(Double value) {
+        return value == null ? 0.0 : value;
     }
 }

@@ -34,3 +34,10 @@ Main features
 - Analyse historical running data
 - Generate predictions related to performance, training load and recovery
 - Provide meaningful insights into running performance for recreational running clubs
+
+ML training
+- Reads training_dataset.csv custom path with `--input`
+- Run python ML/train_model.py to train a Random Forest regressor
+- The trained model is saved as `ML/trained_model.pkl`
+- Evaluation metrics are printed to the console after training
+

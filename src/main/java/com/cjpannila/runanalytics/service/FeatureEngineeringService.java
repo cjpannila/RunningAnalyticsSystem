@@ -4,6 +4,7 @@ import com.cjpannila.runanalytics.dto.TrainingDatasetExportResultDto;
 import com.cjpannila.runanalytics.entities.User;
 import com.cjpannila.runanalytics.repositories.ActivityRepository;
 import com.cjpannila.runanalytics.repositories.UserRepository;
+import com.cjpannila.runanalytics.util.Constants;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +32,8 @@ public class FeatureEngineeringService {
     private static final String CSV_HEADER =
             "week_start,user_id,run_count," +
             "total_distance_km,avg_pace_min_per_km,total_elevation_m," +
-            "total_running_time_s,avg_cadence,avg_hr,longest_run_km,training_load,target_next_week_pace";
+            "total_running_time_s,avg_cadence,avg_hr,longest_run_km,training_load," +
+            "target_next_week_pace,target_next_week_km";
 
     //Generates a training dataset CSV covering ALL users across ALL weeks
     public TrainingDatasetExportResultDto generateTrainingDatasetCsv() {
@@ -90,9 +92,24 @@ public class FeatureEngineeringService {
                 long movingTimeS = analyticsService.calculateTotalMovingTimeSeconds(uid, weekStart);
                 int runCount = (int) analyticsService.calculateWeeklyRunCount(uid, weekStart);
                 double targetNextWeekPace = analyticsService.calculateAveragePaceNextWeek(uid, weekStart);
+                double targetNextWeekKm = analyticsService.calculateTargetDistanceNextWeek(uid, weekStart);
 
                 //Skip weeks with no runs for this user
-                if (runCount > 0) {
+                if (runCount > 0 && targetNextWeekPace > 0) {
+                    if (isZeroOrNull(avgCadence)) {
+                        avgCadence = analyticsService.calculateAllTimeAverageCadence(uid);
+                    }
+                    if (isZeroOrNull(avgHr)) {
+                        avgHr = analyticsService.calculateAllTimeAverageHeartRate(uid);
+                    }
+                    if (isZeroOrNull(trainingLoad)) {
+                        //Training Load > Sum of (Duration in minutes×Intensity Factor)
+                        //Intensity Factor=Average Heart Rate/Max Heart Rate
+                        trainingLoad = (movingTimeS / 60.0) * (avgHr / Constants.MAX_HEART_RATE);
+                    }
+                    if (isZeroOrNull(elevation)) {
+                        elevation = analyticsService.calculateAllTimeAverageElevationPerKm(uid) * totalDistanceKm;
+                    }
                     sb.append(weekStart).append(",")
                             .append(uid).append(",")
                             .append(runCount).append(",")
@@ -104,7 +121,8 @@ public class FeatureEngineeringService {
                             .append(round(avgHr, 1)).append(",")
                             .append(round(longestRunKm, 2)).append(",")
                             .append(round(trainingLoad, 3)).append(",")
-                            .append(round(targetNextWeekPace, 2))
+                            .append(round(targetNextWeekPace, 2)).append(",")
+                            .append(round(targetNextWeekKm, 2))
                             .append("\n");
                     result.setRowsGenerated(result.getRowsGenerated() + 1);
                     result.setActivitiesUsed(result.getActivitiesUsed() + runCount);
@@ -122,12 +140,7 @@ public class FeatureEngineeringService {
         return Math.round(value * factor) / factor;
     }
 
-    /** Wraps a CSV field in quotes if it contains a comma, quote or newline */
-    private String escapeCsv(String value) {
-        if (value == null) return "";
-        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
-            return "\"" + value.replace("\"", "\"\"") + "\"";
-        }
-        return value;
+    private boolean isZeroOrNull(Number value) {
+        return value == null || value.doubleValue() == 0.0;
     }
 }

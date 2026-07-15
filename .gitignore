@@ -34,3 +34,6 @@ build/
 
 .mvn/
 AGENTS.md
+
+/ML/.venv
+/ML/*.pkl
