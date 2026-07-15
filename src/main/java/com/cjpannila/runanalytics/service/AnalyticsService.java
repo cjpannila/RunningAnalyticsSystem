@@ -41,6 +41,29 @@ public class AnalyticsService {
         return totalMovingMinutes / totalDistanceKm;
     }
 
+    public double calculateAveragePaceNextWeek(Long userId, LocalDate weekStart) {
+        logger.info("Calculating average pace for next week for userId: {}, weekStart: {}", userId, weekStart);
+        LocalDate nextWeekStart = weekStart.plusWeeks(1);
+        List<Activity> activities = getActivitiesForWeek(userId, nextWeekStart);
+
+        double totalDistanceKm = activities.stream()
+                .mapToDouble(a -> a.getDistanceM() == null ? 0 : a.getDistanceM())
+                .sum() / 1000.0;
+
+        double totalMovingMinutes = activities.stream()
+                .mapToDouble(a -> a.getMovingTimeS() == null ? 0 : a.getMovingTimeS())
+                .sum() / 60.0;
+
+        if (totalDistanceKm == 0) {
+            if (nextWeekStart.isAfter(LocalDate.now())) {
+                return 0;
+            } else {
+                return calculateAveragePaceNextWeek(userId, nextWeekStart);
+            }
+        }
+        return totalMovingMinutes / totalDistanceKm;
+    }
+
     // avg heart rate per week
     public double calculateAverageHeartRate(Long userId, LocalDate weekStart) {
         logger.info("Calculating average heart rate for userId: {}, weekStart: {}", userId, weekStart);

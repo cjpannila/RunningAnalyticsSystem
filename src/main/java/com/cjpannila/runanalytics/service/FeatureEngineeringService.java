@@ -31,7 +31,7 @@ public class FeatureEngineeringService {
     private static final String CSV_HEADER =
             "week_start,user_id,run_count," +
             "total_distance_km,avg_pace_min_per_km,total_elevation_m," +
-            "total_running_time_s,avg_cadence,avg_hr,longest_run_km,training_load";
+            "total_running_time_s,avg_cadence,avg_hr,longest_run_km,training_load,target_next_week_pace";
 
     //Generates a training dataset CSV covering ALL users across ALL weeks
     public TrainingDatasetExportResultDto generateTrainingDatasetCsv() {
@@ -89,21 +89,26 @@ public class FeatureEngineeringService {
                 double elevation = analyticsService.calculateWeeklyElevation(uid, weekStart);
                 long movingTimeS = analyticsService.calculateTotalMovingTimeSeconds(uid, weekStart);
                 int runCount = (int) analyticsService.calculateWeeklyRunCount(uid, weekStart);
+                double targetNextWeekPace = analyticsService.calculateAveragePaceNextWeek(uid, weekStart);
 
-                sb.append(weekStart).append(",")
-                  .append(uid).append(",")
-                  .append(runCount).append(",")
-                  .append(round(totalDistanceKm, 2)).append(",")
-                  .append(round(avgPace, 2)).append(",")
-                  .append(round(elevation, 1)).append(",")
-                  .append(movingTimeS).append(",")
-                  .append(round(avgCadence, 1)).append(",")
-                  .append(round(avgHr, 1)).append(",")
-                  .append(round(longestRunKm, 2)).append(",")
-                  .append(round(trainingLoad, 3))
-                  .append("\n");
-                result.setRowsGenerated(result.getRowsGenerated() + 1);
-                result.setActivitiesUsed(result.getActivitiesUsed() + runCount);
+                //Skip weeks with no runs for this user
+                if (runCount > 0) {
+                    sb.append(weekStart).append(",")
+                            .append(uid).append(",")
+                            .append(runCount).append(",")
+                            .append(round(totalDistanceKm, 2)).append(",")
+                            .append(round(avgPace, 2)).append(",")
+                            .append(round(elevation, 1)).append(",")
+                            .append(movingTimeS).append(",")
+                            .append(round(avgCadence, 1)).append(",")
+                            .append(round(avgHr, 1)).append(",")
+                            .append(round(longestRunKm, 2)).append(",")
+                            .append(round(trainingLoad, 3)).append(",")
+                            .append(round(targetNextWeekPace, 2))
+                            .append("\n");
+                    result.setRowsGenerated(result.getRowsGenerated() + 1);
+                    result.setActivitiesUsed(result.getActivitiesUsed() + runCount);
+                }
             }
             weekStart = weekStart.plusWeeks(1);
         }
