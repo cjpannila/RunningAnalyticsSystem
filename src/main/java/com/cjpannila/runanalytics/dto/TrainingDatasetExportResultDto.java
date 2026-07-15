@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TrainingDatasetExportResult {
+public class TrainingDatasetExportResultDto {
     private byte[] csvBytes;
     private long rowsGenerated;
     private long activitiesUsed;

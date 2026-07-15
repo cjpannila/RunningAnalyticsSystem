@@ -1,6 +1,6 @@
 package com.cjpannila.runanalytics.service;
 
-import com.cjpannila.runanalytics.dto.TrainingDatasetExportResult;
+import com.cjpannila.runanalytics.dto.TrainingDatasetExportResultDto;
 import com.cjpannila.runanalytics.entities.User;
 import com.cjpannila.runanalytics.repositories.ActivityRepository;
 import com.cjpannila.runanalytics.repositories.UserRepository;
@@ -34,10 +34,10 @@ public class FeatureEngineeringService {
             "total_running_time_s,avg_cadence,avg_hr,longest_run_km,training_load";
 
     //Generates a training dataset CSV covering ALL users across ALL weeks
-    public TrainingDatasetExportResult generateTrainingDatasetCsv() {
+    public TrainingDatasetExportResultDto generateTrainingDatasetCsv() {
         List<User> users = new ArrayList<>();
         userRepository.findAll().forEach(users::add);
-        TrainingDatasetExportResult result = new TrainingDatasetExportResult();
+        TrainingDatasetExportResultDto result = new TrainingDatasetExportResultDto();
         result.setRowsGenerated(0);
         result.setActivitiesUsed(0);
 
