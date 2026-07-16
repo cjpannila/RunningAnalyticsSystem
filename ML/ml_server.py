@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ml_service import train_model
-from config import TARGET
+from ml_predict import generate_predictions
+from config import TARGET_DEFAULT
 
 app = FastAPI()
 
@@ -16,6 +17,11 @@ app.add_middleware(
 )
 
 @app.post("/train")
-def train_model_endpoint(target: str = TARGET):
+def train_model_endpoint(target: str = TARGET_DEFAULT):
     print("/train api called")
     return train_model(target)
+
+@app.post("/predict")
+def predict_model_endpoint(target: str = TARGET_DEFAULT):
+    print("/predict api called")
+    return generate_predictions(target)
