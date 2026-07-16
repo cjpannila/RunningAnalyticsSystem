@@ -58,9 +58,11 @@
                     <button id="saveBtn" class="btn btn-success" onclick="saveWeeklySummary()">
                         Save Training Data
                     </button>
-
                     <button id="generateBtn" class="btn btn-success" onclick="generateDataset()">
                         Generate Training Dataset
+                    </button>
+                    <button id="trainBtn" class="btn btn-success" onclick="trainModel()">
+                        Train Model
                     </button>
                 </div>
             </div>
@@ -106,6 +108,7 @@
 
 <script>
     const API_BASE = "/runanalytics/api";
+    const PY_TRAINING_BASE = "http://127.0.0.1:8001";
     const query = new URLSearchParams(window.location.search);
     const preUserId = query.get('userId');
 
@@ -144,6 +147,31 @@
                 btn.disabled = false;
                 btn.innerHTML = 'Save Training Data';
             });
+    }
+
+    async function trainModel() {
+        const btn = document.getElementById('trainBtn');
+        const statusBox = document.getElementById('statusBox');
+
+        const response = await fetch(`${PY_TRAINING_BASE}/train`, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        statusBox.className = 'alert alert-success d-block';
+        statusBox.innerHTML = `
+                    <div><strong>${result.message || 'Model trained successfully'}</strong></div>
+                    <div class="small mt-1">Saved to: <code>${result.modelPath || 'trained_model.pkl'}</code></div>
+                    <div class="small mt-1">MAE: ${result.mae?.toFixed ? result.mae.toFixed(4) : result.mae}</div>
+                    <div class="small">RMSE: ${result.rmse?.toFixed ? result.rmse.toFixed(4) : result.rmse}</div>
+                    <div class="small">R2: ${result.r2?.toFixed ? result.r2.toFixed(4) : result.r2}</div>
+                `;
+        btn.disabled = false;
+        btn.innerHTML = 'Train Model';
     }
 
     function generateDataset() {
