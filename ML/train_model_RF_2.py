@@ -12,8 +12,7 @@ from sklearn.pipeline import Pipeline
 DATASET = Path.home() / "Downloads" / "training_dataset.csv"
 MODEL_OUTPUT = "trained_model.pkl"
 
-# TARGET = "target_next_week_pace"
-TARGET = "target_next_week_km"
+TARGET = "target_next_week_pace"
 
 # Load data
 df = pd.read_csv(DATASET)
@@ -29,8 +28,7 @@ X = df.drop(
 	columns=[
 		TARGET,
 		"user_id",
-		"week_start",
-		"target_next_week_pace"
+		"week_start"
 	]
 )
 y = df[TARGET]

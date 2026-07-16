@@ -12,7 +12,8 @@ from sklearn.pipeline import Pipeline
 DATASET = Path.home() / "Downloads" / "training_dataset.csv"
 MODEL_OUTPUT = "trained_model.pkl"
 
-TARGET = "target_next_week_pace"
+#TARGET = "target_next_week_pace"
+TARGET = "target_next_week_km"
 
 # Load data
 df = pd.read_csv(DATASET)
