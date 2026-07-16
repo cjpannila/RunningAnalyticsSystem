@@ -1,6 +1,5 @@
 package com.cjpannila.runanalytics.service;
 
-import com.cjpannila.runanalytics.controller.ClubController;
 import com.cjpannila.runanalytics.entities.Activity;
 import com.cjpannila.runanalytics.repositories.ActivityRepository;
 import com.cjpannila.runanalytics.util.Constants;
@@ -9,9 +8,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.YearMonth;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Objects;
 
@@ -56,7 +56,7 @@ public class AnalyticsService {
                 .sum() / 60.0;
 
         if (totalDistanceKm == 0) {
-            if (nextWeekStart.isAfter(LocalDate.now())) {
+            if (isEqualOrAfterThisMonday(nextWeekStart)) {
                 return 0;
             } else {
                 return calculateAveragePaceNextWeek(userId, nextWeekStart);
@@ -98,7 +98,7 @@ public class AnalyticsService {
         LocalDate nextWeekStart = weekStart.plusWeeks(1);
         List<Activity> activities = getActivitiesForWeek(userId, nextWeekStart);
         if (activities.isEmpty()) {
-            if (nextWeekStart.isAfter(LocalDate.now())) {
+            if (isEqualOrAfterThisMonday(nextWeekStart)) {
                 return 0;
             } else {
                 return calculateTargetDistanceNextWeek(userId, nextWeekStart);
@@ -208,5 +208,10 @@ public class AnalyticsService {
 
     private double nullToZero(Double value) {
         return value == null ? 0.0 : value;
+    }
+
+    private boolean isEqualOrAfterThisMonday(LocalDate weekStart) {
+        LocalDate thisMonday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        return weekStart.isEqual(thisMonday) || weekStart.isAfter(thisMonday);
     }
 }

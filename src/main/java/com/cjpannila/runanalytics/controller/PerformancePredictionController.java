@@ -1,5 +1,6 @@
 package com.cjpannila.runanalytics.controller;
 
+import com.cjpannila.runanalytics.dto.TrainingDatasetExportResultDto;
 import com.cjpannila.runanalytics.service.FeatureEngineeringService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -41,6 +42,22 @@ public class PerformancePredictionController {
         } catch (Exception e) {
             logger.error("Failed to generate training dataset", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping(value = "/save-weekly-summary", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> saveWeeklySummary() {
+        try {
+            logger.info("Weekly summary save requested");
+            TrainingDatasetExportResultDto result = featureEngineeringService.saveWeeklySummary();
+            if (result.getRowsGenerated() > 0) {
+                return ResponseEntity.ok("Saved weekly summary, "
+                        + result.getRowsGenerated() + " records were saved");
+            }
+            return ResponseEntity.status(HttpStatus.OK).body("No new weekly summary records were saved");
+        } catch (Exception e) {
+            logger.error("Failed to save weekly summary", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error");
         }
     }
 }

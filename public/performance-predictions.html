@@ -55,6 +55,10 @@
 
                     <div id="statusBox" class="alert d-none mb-2" role="alert"></div>
 
+                    <button id="saveBtn" class="btn btn-success" onclick="saveWeeklySummary()">
+                        Save Training Data
+                    </button>
+
                     <button id="generateBtn" class="btn btn-success" onclick="generateDataset()">
                         Generate Training Dataset
                     </button>
@@ -79,6 +83,7 @@
                         <span class="column-badge">longest_run_km</span>
                         <span class="column-badge">training_load</span>
                         <span class="column-badge">target_next_week_pace</span>
+                        <span class="column-badge">target_next_week_km</span>
                     </div>
                     <hr class="my-3">
                     <div id="datasetSummary" class="small text-muted">
@@ -109,6 +114,37 @@
             document.getElementById('backLink').href = `users.html?userId=${encodeURIComponent(preUserId)}`;
         }
     });
+    function saveWeeklySummary() {
+        const btn = document.getElementById('saveBtn');
+        const statusBox = document.getElementById('statusBox');
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Saving…';
+        statusBox.className = 'alert alert-info d-block';
+        statusBox.textContent = 'Saving weekly summary records. This may take a while…';
+
+        fetch(`${API_BASE}/performance/save-weekly-summary`)
+            .then(r => {
+                return r.text().then(message => {
+                    if (!r.ok) {
+                        throw new Error(message || `Server error: ${r.status}`);
+                    }
+                    return message || 'Saved';
+                });
+            })
+            .then(message => {
+                statusBox.className = 'alert alert-success d-block';
+                statusBox.textContent = message;
+                btn.disabled = false;
+                btn.innerHTML = 'Save Training Data';
+            })
+            .catch(err => {
+                statusBox.className = 'alert alert-danger d-block';
+                statusBox.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>Failed to save weekly summary: ${err.message}`;
+                btn.disabled = false;
+                btn.innerHTML = 'Save Training Data';
+            });
+    }
 
     function generateDataset() {
         const btn = document.getElementById('generateBtn');
@@ -139,7 +175,7 @@
                 URL.revokeObjectURL(url);
 
                 statusBox.className = 'alert alert-success d-block';
-                statusBox.innerHTML = `Dataset generated and downloaded successfully`;
+                statusBox.innerHTML = `Dataset generated successfully`;
                 document.getElementById('rowsGeneratedValue').textContent = rowsGenerated;
                 document.getElementById('activitiesUsedValue').textContent = activitiesUsed;
                 btn.disabled = false;
