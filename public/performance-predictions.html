@@ -61,6 +61,13 @@
                     <button id="generateBtn" class="btn btn-success" onclick="generateDataset()">
                         Generate Training Dataset
                     </button>
+                    <div class="mt-3">
+                        <label for="targetSelect" class="form-label fw-semibold">Training target</label>
+                        <select id="targetSelect" class="form-select">
+                            <option value="target_next_week_km" selected>target_next_week_km</option>
+                            <option value="target_next_week_pace">target_next_week_pace</option>
+                        </select>
+                    </div>
                     <button id="trainBtn" class="btn btn-success" onclick="trainModel()">
                         Train Model
                     </button>
@@ -152,8 +159,14 @@
     async function trainModel() {
         const btn = document.getElementById('trainBtn');
         const statusBox = document.getElementById('statusBox');
+        const target = document.getElementById('targetSelect').value || 'target_next_week_km';
 
-        const response = await fetch(`${PY_TRAINING_BASE}/train`, {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Training…';
+        statusBox.className = 'alert alert-info d-block';
+        statusBox.textContent = 'Training the model on the Python server. This may take a while…';
+
+        const response = await fetch(`${PY_TRAINING_BASE}/train?target=${encodeURIComponent(target)}`, {
             method: "POST",
             headers: {
                 'Content-Type': 'application/json'
@@ -162,9 +175,14 @@
 
         const result = await response.json();
 
+        if (!response.ok) {
+            throw new Error(result.message || `Server error: ${response.status}`);
+        }
+
         statusBox.className = 'alert alert-success d-block';
         statusBox.innerHTML = `
                     <div><strong>${result.message || 'Model trained successfully'}</strong></div>
+                    <div class="small mt-1">Target: <code>${result.target || target}</code></div>
                     <div class="small mt-1">Saved to: <code>${result.modelPath || 'trained_model.pkl'}</code></div>
                     <div class="small mt-1">MAE: ${result.mae?.toFixed ? result.mae.toFixed(4) : result.mae}</div>
                     <div class="small">RMSE: ${result.rmse?.toFixed ? result.rmse.toFixed(4) : result.rmse}</div>
