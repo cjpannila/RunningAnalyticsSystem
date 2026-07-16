@@ -157,25 +157,18 @@
         statusBox.textContent = 'Querying all user activities across all weeks. This may take a while…';
 
         fetch(`${API_BASE}/performance/training-dataset`)
-            .then(r => {
-                if (!r.ok) throw new Error(`Server error: ${r.status}`);
-                const rowsGenerated = r.headers.get('X-Rows-Generated') || '0';
-                const activitiesUsed = r.headers.get('X-Activities-Used') || '0';
-                return r.blob().then(blob => ({ blob, rowsGenerated, activitiesUsed }));
+            .then(async r => {
+                const message = await r.text();
+                if (!r.ok) throw new Error(message || `Server error: ${r.status}`);
+                return {
+                    message,
+                    rowsGenerated: r.headers.get('X-Rows-Generated') || '0',
+                    activitiesUsed: r.headers.get('X-Activities-Used') || '0'
+                };
             })
-            .then(({ blob, rowsGenerated, activitiesUsed }) => {
-                // Trigger file download
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = 'training_dataset.csv';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-
+            .then(({ message, rowsGenerated, activitiesUsed }) => {
                 statusBox.className = 'alert alert-success d-block';
-                statusBox.innerHTML = `Dataset generated successfully`;
+                statusBox.textContent = message;
                 document.getElementById('rowsGeneratedValue').textContent = rowsGenerated;
                 document.getElementById('activitiesUsedValue').textContent = activitiesUsed;
                 btn.disabled = false;

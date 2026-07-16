@@ -15,4 +15,6 @@ public class Constants {
 
     //Estimated max HR (can be user-specific later)
     public static final double MAX_HEART_RATE = 190.0;
+
+    public static final String TRAINING_DATASET_FILE_NAME = "training_dataset.csv";
 }
