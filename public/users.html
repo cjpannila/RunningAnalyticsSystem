@@ -142,6 +142,14 @@
     <div id="errorAlert" class="alert alert-danger error-alert" role="alert"></div>
     <div id="successAlert" class="alert alert-success success-alert" role="alert"></div>
 
+    <div class="table-container mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <label for="authCodeInput" class="form-label fw-semibold">Authorization Code</label>
+            <input type="text" id="authCodeInput" style="width: 350px;" class="form-control" placeholder="Authorization code">
+            <button type="button" class="btn btn-get-token" onclick="authorizeUser()">Authorize</button>
+        </div>
+    </div>
+
     <div class="table-container">
         <div id="loadingSpinner" class="text-center loading-spinner">
             <div class="spinner-border text-warning" role="status">
@@ -307,6 +315,16 @@
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             });
+    }
+
+    function authorizeUser() {
+        const codeInput = document.getElementById('authCodeInput');
+        const code = (codeInput.value || '').trim();
+        if (!code) {
+            showError('Please enter the authorization code');
+            return;
+        }
+        window.location.href = `${API_BASE}/page/authenticate?code=${encodeURIComponent(code)}`;
     }
 
     function copyToClipboard() {

@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
@@ -322,7 +323,7 @@ public class UserController {
 
             if (tokenResponse == null || tokenResponse.getAthlete() == null) {
                 logger.error("Invalid response from Strava");
-                return new RedirectView("/runanalytics/authenticated.html?error=Invalid response from Strava");
+                return authenticatedErrorRedirect("Invalid response from Strava");
             }
 
             // Create or update user
@@ -355,8 +356,18 @@ public class UserController {
 
         } catch (Exception e) {
             logger.error("Error during Strava authentication", e);
-            return new RedirectView("/runanalytics/authenticated.html?error=Authentication failed: " + e.getMessage());
+            return authenticatedErrorRedirect("Authentication failed: " + e.getMessage());
         }
+    }
+
+    private RedirectView authenticatedErrorRedirect(String errorMessage) {
+        String redirectUrl = UriComponentsBuilder
+                .fromPath("/runanalytics/authenticated.html")
+                .queryParam("error", errorMessage)
+                .build()
+                .encode()
+                .toUriString();
+        return new RedirectView(redirectUrl);
     }
 
     @PostMapping(value = "/gettoken")

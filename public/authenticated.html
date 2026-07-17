@@ -279,7 +279,7 @@
     const errorParam = urlParams.get('error');
 
     if (errorParam) {
-        showError(decodeURIComponent(errorParam));
+        showError(errorParam);
     } else if (userId) {
         displayUserDetails(userId);
     } else {
