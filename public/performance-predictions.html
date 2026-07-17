@@ -104,6 +104,47 @@
             </div>
         </div>
     </div>
+
+    <div class="row g-4 mt-1">
+        <div class="col-12">
+            <div class="card info-card h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <h5 class="fw-bold mb-0"><i class="bi text-primary me-2"></i>Prediction Table</h5>
+                        <button id="predictBtn" class="btn btn-success" onclick="predict()">
+                            Predict
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped align-middle">
+                            <thead>
+                            <tr>
+                                <th>user_id</th>
+                                <th>week_start</th>
+                                <th>run_count</th>
+                                <th>total_distance_km</th>
+                                <th>avg_pace_min_per_km</th>
+                                <th>total_elevation_m</th>
+                                <th>total_running_time_s</th>
+                                <th>avg_cadence</th>
+                                <th>avg_hr</th>
+                                <th>longest_run_km</th>
+                                <th>training_load</th>
+                                <th>target_next_week_pace</th>
+                                <th>target_next_week_km</th>
+                                <th>target_next_week_km_prediction</th>
+                                <th>target_next_week_pace_prediction</th>
+                            </tr>
+                            </thead>
+                            <tbody id="predictionTableBody">
+                            <tr><td colspan="15" class="text-muted">No rows loaded yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <footer>
@@ -118,12 +159,82 @@
     const PY_TRAINING_BASE = "http://127.0.0.1:8001";
     const query = new URLSearchParams(window.location.search);
     const preUserId = query.get('userId');
+    let predictionTableRows = [];
 
     document.addEventListener('DOMContentLoaded', () => {
         if (preUserId) {
             document.getElementById('backLink').href = `users.html?userId=${encodeURIComponent(preUserId)}`;
         }
+        loadPredictionRows();
     });
+
+    function formatValue(value, decimals = null) {
+        if (value === null || value === undefined || value === '') return '';
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return decimals === null ? value : value.toFixed(decimals);
+        }
+        return value;
+    }
+
+    function renderPredictionRows(rows) {
+        const tbody = document.getElementById('predictionTableBody');
+        if (!rows || rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="15" class="text-muted">No rows loaded yet.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = rows.map(row => `
+            <tr>
+                <td>${formatValue(row.user_id)}</td>
+                <td>${formatValue(row.week_start)}</td>
+                <td>${formatValue(row.run_count)}</td>
+                <td>${formatValue(row.total_distance_km, 2)}</td>
+                <td>${formatValue(row.avg_pace_min_per_km, 2)}</td>
+                <td>${formatValue(row.total_elevation_m, 1)}</td>
+                <td>${formatValue(row.total_running_time_s)}</td>
+                <td>${formatValue(row.avg_cadence, 1)}</td>
+                <td>${formatValue(row.avg_hr, 1)}</td>
+                <td>${formatValue(row.longest_run_km, 2)}</td>
+                <td>${formatValue(row.training_load, 3)}</td>
+                <td>${formatValue(row.target_next_week_pace, 2)}</td>
+                <td>${formatValue(row.target_next_week_km, 2)}</td>
+                <td>${formatValue(row.target_next_week_km_prediction, 2)}</td>
+                <td>${formatValue(row.target_next_week_pace_prediction, 2)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function loadPredictionRows() {
+        fetch(`${API_BASE}/performance/prediction-rows`)
+            .then(r => {
+                if (!r.ok) throw new Error(`Server error: ${r.status}`);
+                return r.json();
+            })
+            .then(rows => {
+                predictionTableRows = rows || [];
+                renderPredictionRows(predictionTableRows);
+            })
+            .catch(err => {
+                document.getElementById('predictionTableBody').innerHTML =
+                    `<tr><td colspan="15" class="text-danger">Failed to load prediction rows: ${err.message}</td></tr>`;
+            });
+    }
+
+    function mergePredictionResults(predictions) {
+        const predictionMap = new Map(
+            (predictions || []).map(pred => [`${pred.user_id}|${pred.week_start}`, pred])
+        );
+
+        predictionTableRows = predictionTableRows.map(row => {
+            const pred = predictionMap.get(`${row.user_id}|${row.week_start}`);
+            return pred ? {
+                ...row,
+                ...pred
+            } : row;
+        });
+
+        renderPredictionRows(predictionTableRows);
+    }
     function saveWeeklySummary() {
         const btn = document.getElementById('saveBtn');
         const statusBox = document.getElementById('statusBox');
@@ -190,6 +301,47 @@
                 `;
         btn.disabled = false;
         btn.innerHTML = 'Train Model';
+    }
+
+    function predict() {
+        const btn = document.getElementById('predictBtn');
+        const statusBox = document.getElementById('statusBox');
+        const target = document.getElementById('targetSelect').value || 'target_next_week_km';
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Predicting…';
+        statusBox.className = 'alert alert-info d-block';
+        statusBox.textContent = 'Generating prediction dataset and calling the ML server…';
+
+        fetch(`${API_BASE}/performance/predict?target=${encodeURIComponent(target)}`)
+            .then(async r => {
+                const payload = await r.json().catch(() => null);
+                if (!r.ok) {
+                    throw new Error((payload && payload.message) || `Server error: ${r.status}`);
+                }
+                return payload;
+            })
+            .then(payload => {
+                statusBox.className = 'alert alert-success d-block';
+                statusBox.innerHTML = `
+                    <div><strong>${payload.message || 'Predictions generated successfully'}</strong></div>
+                    <div class="small mt-1">Target: <code>${payload.target || target}</code></div>
+                    <div class="small mt-1">Dataset: <code>${payload.datasetPath || 'prediction_dataset.csv'}</code></div>
+                    <div class="small mt-1">Rows: ${payload.rowsGenerated || 0}</div>
+                `;
+
+                if (payload.predictions && payload.predictions.length) {
+                    mergePredictionResults(payload.predictions);
+                }
+            })
+            .catch(err => {
+                statusBox.className = 'alert alert-danger d-block';
+                statusBox.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>Failed to predict: ${err.message}`;
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = 'Predict';
+            });
     }
 
     function generateDataset() {

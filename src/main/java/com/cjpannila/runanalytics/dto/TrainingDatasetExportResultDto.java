@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class TrainingDatasetExportResultDto {
     private byte[] csvBytes;
-    private long rowsGenerated;
+    private int rowsGenerated;
     private long activitiesUsed;
 }
 

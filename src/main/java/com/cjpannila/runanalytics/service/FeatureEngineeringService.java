@@ -1,5 +1,6 @@
 package com.cjpannila.runanalytics.service;
 
+import com.cjpannila.runanalytics.dto.PredictionTableRowDto;
 import com.cjpannila.runanalytics.dto.TrainingDatasetExportResultDto;
 import com.cjpannila.runanalytics.entities.User;
 import com.cjpannila.runanalytics.entities.WeeklySummary;
@@ -16,6 +17,9 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -39,6 +43,90 @@ public class FeatureEngineeringService {
             "total_distance_km,avg_pace_min_per_km,total_elevation_m," +
             "total_running_time_s,avg_cadence,avg_hr,longest_run_km,training_load," +
             "target_next_week_pace,target_next_week_km";
+
+    private static final String PREDICTION_CSV_HEADER =
+            "user_id,week_start,run_count,total_distance_km,avg_pace_min_per_km,total_elevation_m," +
+            "total_running_time_s,avg_cadence,avg_hr,longest_run_km,training_load," +
+            "target_next_week_pace,target_next_week_km";
+
+    public List<PredictionTableRowDto> buildPredictionRows() {
+        List<User> users = new ArrayList<>();
+        userRepository.findAll().forEach(users::add);
+        List<PredictionTableRowDto> rows = new ArrayList<>();
+
+        for (User user : users) {
+            Long uid = user.getUserId();
+            if (uid == null) {
+                continue;
+            }
+
+            List<WeeklySummary> summaries = weeklySummaryRepository.findByUser_UserIdOrderByWeekStartDesc(uid);
+            if (summaries.isEmpty()) {
+                continue;
+            }
+
+            int limit = Math.min(2, summaries.size());
+            for (int i = 0; i < limit; i++) {
+                WeeklySummary summary = summaries.get(i);
+                rows.add(PredictionTableRowDto.builder()
+                        .userId(uid)
+                        .weekStart(summary.getWeekStart())
+                        .runCount(summary.getRunCount())
+                        .totalDistanceKm(toDouble(summary.getTotalDistanceKm()))
+                        .avgPaceMinPerKm(toDouble(summary.getAvgPaceMinPerKm()))
+                        .totalElevationM(toDouble(summary.getTotalElevationM()))
+                        .totalRunningTimeS(summary.getTotalRunningTimeS())
+                        .avgCadence(toDouble(summary.getAvgCadence()))
+                        .avgHr(toDouble(summary.getAvgHr()))
+                        .longestRunKm(toDouble(summary.getLongestRunKm()))
+                        .trainingLoad(toDouble(summary.getTrainingLoad()))
+                        .targetNextWeekPace(toDouble(summary.getTargetNextWeekPace()))
+                        .targetNextWeekKm(toDouble(summary.getTargetNextWeekKm()))
+                        .build());
+            }
+        }
+
+        return rows;
+    }
+
+    public TrainingDatasetExportResultDto savePredictionDataset() {
+        List<PredictionTableRowDto> rows = buildPredictionRows();
+        TrainingDatasetExportResultDto result = new TrainingDatasetExportResultDto();
+        result.setRowsGenerated(rows.size());
+        result.setActivitiesUsed(rows.size());
+
+        Path outputFile = resolvePredictionDatasetFile();
+        try {
+            Files.createDirectories(outputFile.getParent());
+            StringBuilder sb = new StringBuilder();
+            sb.append(PREDICTION_CSV_HEADER).append("\n");
+            for (PredictionTableRowDto row : rows) {
+                sb.append(nullToEmpty(row.getUserId())).append(",")
+                        .append(nullToEmpty(row.getWeekStart())).append(",")
+                        .append(nullToEmpty(row.getRunCount())).append(",")
+                        .append(nullToEmpty(row.getTotalDistanceKm())).append(",")
+                        .append(nullToEmpty(row.getAvgPaceMinPerKm())).append(",")
+                        .append(nullToEmpty(row.getTotalElevationM())).append(",")
+                        .append(nullToEmpty(row.getTotalRunningTimeS())).append(",")
+                        .append(nullToEmpty(row.getAvgCadence())).append(",")
+                        .append(nullToEmpty(row.getAvgHr())).append(",")
+                        .append(nullToEmpty(row.getLongestRunKm())).append(",")
+                        .append(nullToEmpty(row.getTrainingLoad())).append(",")
+                        .append(nullToEmpty(row.getTargetNextWeekPace())).append(",")
+                        .append(nullToEmpty(row.getTargetNextWeekKm()))
+                        .append("\n");
+            }
+            Files.writeString(outputFile, sb.toString(), java.nio.charset.StandardCharsets.UTF_8,
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.TRUNCATE_EXISTING,
+                    java.nio.file.StandardOpenOption.WRITE);
+            result.setCsvBytes(sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return result;
+        } catch (Exception e) {
+            logger.error("Failed to write prediction dataset", e);
+            throw new RuntimeException("Failed to write prediction dataset", e);
+        }
+    }
 
     public TrainingDatasetExportResultDto saveWeeklySummary() {
         List<User> users = new ArrayList<>();
@@ -220,5 +308,28 @@ public class FeatureEngineeringService {
 
     private boolean isZeroOrNull(Number value) {
         return value == null || value.doubleValue() == 0.0;
+    }
+
+    private Path resolvePredictionDatasetFile() {
+        Path homeDir = Paths.get(System.getProperty("user.home"));
+        Path downloadsDir = homeDir.resolve("Downloads");
+        Path targetDir = Files.exists(downloadsDir) ? downloadsDir : homeDir;
+        return targetDir.resolve(Constants.PREDICTION_DATASET_FILE_NAME);
+    }
+
+    private String nullToEmpty(Number value) {
+        return value == null ? "" : value.toString();
+    }
+
+    private String nullToEmpty(Long value) {
+        return value == null ? "" : value.toString();
+    }
+
+    private String nullToEmpty(LocalDate value) {
+        return value == null ? "" : value.toString();
+    }
+
+    private Double toDouble(Float value) {
+        return value == null ? null : value.doubleValue();
     }
 }
