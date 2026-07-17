@@ -15,6 +15,15 @@
         .page-title { color: var(--brand); font-weight: 700; }
         .info-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
         .column-badge { background: #f1f3f5; border-radius: 6px; font-size: 0.85rem; padding: 3px 8px; font-family: monospace; }
+        .prediction-cell {
+            background-color: #fff3cd !important;
+            font-weight: 600;
+            color: #856404 !important;
+        }
+        .prediction-header {
+            background-color: #ffb31a !important;
+            color: #ffffff !important;
+        }
         footer {
             background: #333;
             color: #aaa;
@@ -129,8 +138,8 @@
                                 <th>avg hr</th>
                                 <th>longest run</th>
                                 <th>training load</th>
-                                <th>prediction km</th>
-                                <th>prediction pace</th>
+                                <th class="prediction-header">prediction km</th>
+                                <th class="prediction-header">prediction pace</th>
                             </tr>
                             </thead>
                             <tbody id="predictionTableBody">
@@ -192,8 +201,8 @@
                 <td>${formatValue(row.avg_hr, 1)}</td>
                 <td>${formatValue(row.longest_run_km, 2)}</td>
                 <td>${formatValue(row.training_load, 3)}</td>
-                <td>${formatValue(row.target_next_week_km_prediction, 2)}</td>
-                <td>${formatValue(row.target_next_week_pace_prediction, 2)}</td>
+                <td class="prediction-cell">${formatValue(row.target_next_week_km_prediction, 2)}</td>
+                <td class="prediction-cell">${formatValue(row.target_next_week_pace_prediction, 2)}</td>
             </tr>
         `).join('');
     }
