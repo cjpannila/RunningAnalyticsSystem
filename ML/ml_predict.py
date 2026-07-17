@@ -3,12 +3,14 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
-from config import PREDICTION_DATASET, MODELS
+from config import PREDICTION_DATASET, MODELS, validate_model_type
 
-def generate_predictions(target):
+def generate_predictions(target, model_type):
+    model_type = validate_model_type(model_type)
+
     print("Generating Predictions...")
     # Load the trained model
-    saved = joblib.load(Path(MODELS) / f"{target}.pkl")
+    saved = joblib.load(Path(MODELS) / f"{model_type}_{target}.pkl")
     model = saved["model"]
     features = saved["features"]
 
@@ -22,7 +24,7 @@ def generate_predictions(target):
     # Predict and assign to result
     result[f"{target}_prediction"] = model.predict(X)
 
-    print("Predictions for the next week:")
+    print(f"Predictions for the next week with ({model_type}):")
     print(result)
     return result.to_dict(orient="records")
 

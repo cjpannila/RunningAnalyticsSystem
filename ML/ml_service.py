@@ -2,15 +2,18 @@ from pathlib import Path
 
 import joblib
 import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.linear_model import LinearRegression
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 
-from config import DATASET, MODELS
+from config import DATASET, MODELS, MODEL_TYPE_LINEAR_REGRESSION, MODEL_TYPE_GRADIENT_BOOSTING, validate_model_type
 
-def train_model(target):
+def train_model(target, model_type):
+    model_type = validate_model_type(model_type)
+
     # Complete training pipeline
     df = load_dataset()
 
@@ -18,13 +21,13 @@ def train_model(target):
 
     X_train, X_test, y_train, y_test = split_dataset(X, y)
 
-    model = build_model()
+    model = build_model(model_type)
 
     model = perform_model_training(model, X_train, y_train)
 
-    metrics = evaluate_model(model, X_test, y_test, target)
+    metrics = evaluate_model(model, X_test, y_test, target, model_type)
 
-    save_model(model, X, target)
+    save_model(model, X, target, model_type)
 
     return metrics
 
@@ -73,20 +76,26 @@ def split_dataset(X, y):
         random_state=42
     )
 
-def build_model():
+def build_model(model_type):
     # Model pipeline configuration
     # SimpleImputer - Set missing values with median
-    # Random Forest - builds many decision trees (300)
-    # random_state 42 makes the pipeline reproducible
+    if model_type == MODEL_TYPE_LINEAR_REGRESSION:
+        model = LinearRegression()
+
+    elif model_type == MODEL_TYPE_GRADIENT_BOOSTING:
+        model = GradientBoostingRegressor(random_state=42)
+
+    else:
+        # Random Forest - builds many decision trees (300)
+        # random_state 42 makes the pipeline reproducible
+        model = RandomForestRegressor(
+            n_estimators=300,
+            random_state=42
+        )
+
     return Pipeline([
         ("imputer", SimpleImputer(strategy="median")),
-        (
-            "model",
-            RandomForestRegressor(
-                n_estimators=300,
-                random_state=42
-            )
-        )
+        ("model", model)
     ])
 
 def perform_model_training(model, X_train, y_train):
@@ -94,7 +103,7 @@ def perform_model_training(model, X_train, y_train):
     model.fit(X_train, y_train)
     return model
 
-def evaluate_model(model, X_test, y_test, target):
+def evaluate_model(model, X_test, y_test, target, model_type):
     # Evaluate - Fill missing values, Predict the pace and store in prediction
     prediction = model.predict(X_test)
 
@@ -106,17 +115,18 @@ def evaluate_model(model, X_test, y_test, target):
 
     return {
         "message": "Model trained successfully",
-        "modelPath": f"{MODELS}/{target}.pkl",
+        "modelPath": f"{MODELS}/{model_type}_{target}.pkl",
+        "modelType": f"{model_type}",
         "mae": round(mae, 4),
         "rmse": round(rmse, 4),
         "r2": round(r2, 4)
     }
 
-def save_model(model, X, target):
+def save_model(model, X, target, model_type):
     # Save model to file
     MODEL_DIR = Path(MODELS)
     MODEL_DIR.mkdir(exist_ok=True)
-    model_path = MODEL_DIR / f"{target}.pkl"
+    model_path = MODEL_DIR / f"{model_type}_{target}.pkl"
     feature_names = X.columns.tolist()
     joblib.dump(
         {
