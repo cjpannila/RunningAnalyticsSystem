@@ -59,13 +59,11 @@ public class FeatureEngineeringService {
             if (uid == null) {
                 continue;
             }
-
             List<WeeklySummary> summaries = weeklySummaryRepository.findByUser_UserIdOrderByWeekStartDesc(uid);
             if (summaries.isEmpty()) {
                 continue;
             }
-
-            int limit = Math.min(2, summaries.size());
+            int limit = Math.min(Constants.PREDICTION_DATAROWS_PER_USER, summaries.size());
             for (int i = 0; i < limit; i++) {
                 WeeklySummary summary = summaries.get(i);
                 rows.add(PredictionTableRowDto.builder()
@@ -85,7 +83,6 @@ public class FeatureEngineeringService {
                         .build());
             }
         }
-
         return rows;
     }
 

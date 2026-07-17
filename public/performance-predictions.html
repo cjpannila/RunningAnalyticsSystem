@@ -195,14 +195,14 @@
                 <td>${formatValue(row.week_start)}</td>
                 <td>${formatValue(row.run_count)}</td>
                 <td>${formatValue(row.total_distance_km, 2)}</td>
-                <td>${formatValue(row.avg_pace_min_per_km, 2)}</td>
+                <td>${formatPace(formatValue(row.avg_pace_min_per_km, 2))}</td>
                 <td>${formatValue(row.total_elevation_m, 1)}</td>
                 <td>${formatValue(row.avg_cadence, 1)}</td>
                 <td>${formatValue(row.avg_hr, 1)}</td>
                 <td>${formatValue(row.longest_run_km, 2)}</td>
                 <td>${formatValue(row.training_load, 3)}</td>
                 <td class="prediction-cell">${formatValue(row.target_next_week_km_prediction, 2)}</td>
-                <td class="prediction-cell">${formatValue(row.target_next_week_pace_prediction, 2)}</td>
+                <td class="prediction-cell">${formatPace(formatValue(row.target_next_week_pace_prediction, 2))}</td>
             </tr>
         `).join('');
     }
@@ -382,6 +382,8 @@
                 btn.innerHTML = 'Generate Training Dataset';
             });
     }
+
+    function formatPace(p){ if(!p || Number(p)<=0) return '-'; const m=Math.floor(p); const s=Math.round((p-m)*60); return `${m}:${String(s).padStart(2,'0')}`; }
 </script>
 </body>
 </html>

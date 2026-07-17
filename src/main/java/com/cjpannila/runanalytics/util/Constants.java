@@ -18,4 +18,6 @@ public class Constants {
 
     public static final String TRAINING_DATASET_FILE_NAME = "training_dataset.csv";
     public static final String PREDICTION_DATASET_FILE_NAME = "prediction_dataset.csv";
+
+    public static final int PREDICTION_DATAROWS_PER_USER = 5;
 }
