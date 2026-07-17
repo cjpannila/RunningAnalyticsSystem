@@ -3,7 +3,7 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
-from config import NEXT_WEEK_FEATURES, MODELS
+from config import PREDICTION_DATASET, MODELS
 
 def generate_predictions(target):
     print("Generating Predictions...")
@@ -28,7 +28,7 @@ def generate_predictions(target):
 
 def load_dataset():
     # Load new weekly data
-    df = pd.read_csv(NEXT_WEEK_FEATURES)
+    df = pd.read_csv(PREDICTION_DATASET)
     print(f"Dataset loaded: {df.shape}")
     return df
 
