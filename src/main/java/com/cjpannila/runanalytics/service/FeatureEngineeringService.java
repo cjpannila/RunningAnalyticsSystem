@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -50,7 +51,7 @@ public class FeatureEngineeringService {
             "total_running_time_s,avg_cadence,avg_hr,longest_run_km,training_load," +
             "target_next_week_pace,target_next_week_km";
 
-    public List<PredictionTableRowDto> buildPredictionRows(boolean limit, boolean forCSV) {
+    public List<PredictionTableRowDto> buildPredictionRows(boolean limit, boolean forCSV, Long userId) {
         List<User> users = new ArrayList<>();
         userRepository.findAll().forEach(users::add);
         List<PredictionTableRowDto> rows = new ArrayList<>();
@@ -58,6 +59,9 @@ public class FeatureEngineeringService {
         for (User user : users) {
             Long uid = user.getUserId();
             if (uid == null) {
+                continue;
+            }
+            if (userId != null && !userId.equals(uid)) {
                 continue;
             }
             List<WeeklySummary> summaries = weeklySummaryRepository.findByUser_UserIdOrderByWeekStartDesc(uid);
@@ -100,8 +104,8 @@ public class FeatureEngineeringService {
     }
 
     // Save prediction_dataset.csv to downloads folder
-    public TrainingDatasetExportResultDto savePredictionDataset(boolean limit) {
-        List<PredictionTableRowDto> rows = buildPredictionRows(limit, true);
+    public TrainingDatasetExportResultDto savePredictionDataset(boolean limit, Long userId) {
+        List<PredictionTableRowDto> rows = buildPredictionRows(limit, true, userId);
         TrainingDatasetExportResultDto result = new TrainingDatasetExportResultDto();
         result.setRowsGenerated(rows.size());
         result.setActivitiesUsed(rows.size());

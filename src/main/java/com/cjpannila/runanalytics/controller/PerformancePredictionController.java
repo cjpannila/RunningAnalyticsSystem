@@ -97,18 +97,20 @@ public class PerformancePredictionController {
     }
 
     @GetMapping(value = "/prediction-rows", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<PredictionTableRowDto>> getPredictionRows(@RequestParam(defaultValue = "true") boolean limit) {
-        return ResponseEntity.ok(featureEngineeringService.buildPredictionRows(limit, false));
+    public ResponseEntity<List<PredictionTableRowDto>> getPredictionRows(@RequestParam(defaultValue = "true") boolean limit,
+                                                                          @RequestParam(required = false) Long userId) {
+        return ResponseEntity.ok(featureEngineeringService.buildPredictionRows(limit, false, userId));
     }
 
     @GetMapping(value = "/predict", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PredictionResponseDto> predict(@RequestParam(defaultValue = "target_next_week_km") String target,
                                                          @RequestParam(defaultValue = "true") boolean limit,
-                                                         @RequestParam(name = "model_type", defaultValue = Constants.RANDOM_FOREST) String modelType) {
+                                                         @RequestParam(name = "model_type", defaultValue = Constants.RANDOM_FOREST) String modelType,
+                                                         @RequestParam(required = false) Long userId) {
         try {
             logger.info("Prediction requested for target={}", target);
 
-            TrainingDatasetExportResultDto datasetResult = featureEngineeringService.savePredictionDataset(limit);
+            TrainingDatasetExportResultDto datasetResult = featureEngineeringService.savePredictionDataset(limit, userId);
             if (datasetResult.getCsvBytes() == null || datasetResult.getCsvBytes().length == 0) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(PredictionResponseDto.builder()

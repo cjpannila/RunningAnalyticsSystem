@@ -7,7 +7,6 @@ import com.cjpannila.runanalytics.dto.UserWeeklyStatsDto;
 import com.cjpannila.runanalytics.dto.StravaTokenRequest;
 import com.cjpannila.runanalytics.dto.StravaTokenResponse;
 import com.cjpannila.runanalytics.entities.User;
-import com.cjpannila.runanalytics.entities.Activity;
 import com.cjpannila.runanalytics.repositories.UserRepository;
 import com.cjpannila.runanalytics.util.Constants;
 import org.slf4j.Logger;

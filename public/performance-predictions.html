@@ -124,6 +124,11 @@
                         <div><strong>Rows generated:</strong> <span id="rowsGeneratedValue">-</span></div>
                         <div><strong>Activities used:</strong> <span id="activitiesUsedValue">-</span></div>
                     </div>
+                    <hr class="my-3">
+                    <label for="userSelect" class="form-label fw-semibold">User</label>
+                    <select id="userSelect" class="form-select mb-3" onchange="loadPredictionRows();clearStatus();predict();">
+                        <option value="">All users</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -215,8 +220,33 @@
             th.title = 'Click to sort';
             th.addEventListener('click', () => sortBy(th.dataset.sort));
         });
+        loadUsers();
         loadPredictionRows();
     });
+
+    function loadUsers() {
+        fetch(`${API_BASE}/users`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server error ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(users => {
+                const select = document.getElementById("userSelect");
+                select.innerHTML = '<option value="">All Users</option>';
+                users.forEach(user => {
+                    const option = document.createElement("option");
+                    option.value = user.userId;
+                    option.textContent =
+                        `${user.firstname} ${user.lastname}`;
+                    select.appendChild(option);
+                });
+            })
+            .catch(err => {
+                console.error("Failed to load users", err);
+            });
+    }
 
     function formatValue(value, decimals = null) {
         if (value === null || value === undefined || value === '') return '';
@@ -335,7 +365,13 @@
 
     function loadPredictionRows() {
         const limit = document.getElementById('limitSelect').value || 'true';
-        fetch(`${API_BASE}/performance/prediction-rows?limit=${encodeURIComponent(limit)}`)
+        const userId = document.getElementById("userSelect").value;
+        alert(userId)
+        let url = `${API_BASE}/performance/prediction-rows?limit=${encodeURIComponent(limit)}`;
+        if (userId) {
+            url += `&userId=${encodeURIComponent(userId)}`;
+        }
+        fetch(url)
             .then(r => {
                 if (!r.ok) throw new Error(`Server error: ${r.status}`);
                 return r.json();
@@ -480,13 +516,18 @@
         const target = document.getElementById('targetSelect').value || 'target_next_week_km';
         const modelType = document.getElementById('modelTypeSelect').value || 'random_forest';
         const limit = document.getElementById('limitSelect').value || 'true';
+        const userId = document.getElementById("userSelect").value;
 
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Predicting…';
         statusBox.className = 'alert alert-info d-block';
         statusBox.textContent = 'Generating prediction dataset and calling the ML server…';
 
-        fetch(`${API_BASE}/performance/predict?target=${encodeURIComponent(target)}&model_type=${encodeURIComponent(modelType)}&limit=${encodeURIComponent(limit)}`)
+        let url = `${API_BASE}/performance/predict?target=${encodeURIComponent(target)}&model_type=${encodeURIComponent(modelType)}&limit=${encodeURIComponent(limit)}`;
+        if (userId) {
+            url += `&userId=${encodeURIComponent(userId)}`;
+        }
+        fetch(url)
             .then(async r => {
                 const payload = await r.json().catch(() => null);
                 if (!r.ok) {
