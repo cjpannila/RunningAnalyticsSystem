@@ -47,3 +47,12 @@ def prepare_features(df, features):
     X = pd.get_dummies(X)
     X = X.reindex(columns=features, fill_value=0)
     return X
+
+def load_evaluation_results(target, model_type):
+    model_type = validate_model_type(model_type)
+
+    print("Generating Predictions...")
+    # Load the trained model
+    saved = joblib.load(Path(MODELS) / f"{model_type}_{target}.pkl")
+    metrics = saved["metrics"]
+    return metrics

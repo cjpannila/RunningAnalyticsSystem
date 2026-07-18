@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ml_service import train_model
-from ml_predict import generate_predictions
+from ml_train import train_model
+from ml_predict import generate_predictions, load_evaluation_results
 from config import TARGET_DEFAULT, MODEL_TYPE_RANDOM_FOREST
 
 app = FastAPI()
@@ -25,3 +25,8 @@ def train_model_endpoint(target: str = TARGET_DEFAULT, model_type: str = MODEL_T
 def predict_model_endpoint(target: str = TARGET_DEFAULT, model_type: str = MODEL_TYPE_RANDOM_FOREST):
     print("/predict api called")
     return generate_predictions(target, model_type)
+
+@app.post("/evaluate")
+def evaluate_model_endpoint(target: str = TARGET_DEFAULT, model_type: str = MODEL_TYPE_RANDOM_FOREST):
+    print("/evaluate api called")
+    return load_evaluation_results(target, model_type)

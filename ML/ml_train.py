@@ -27,7 +27,7 @@ def train_model(target, model_type):
 
     metrics = evaluate_model(model, X_test, y_test, target, model_type)
 
-    save_model(model, X, target, model_type)
+    save_model(model, X, target, model_type, metrics)
 
     return metrics
 
@@ -122,7 +122,7 @@ def evaluate_model(model, X_test, y_test, target, model_type):
         "r2": round(r2, 4)
     }
 
-def save_model(model, X, target, model_type):
+def save_model(model, X, target, model_type, metrics):
     # Save model to file
     MODEL_DIR = Path(MODELS)
     MODEL_DIR.mkdir(exist_ok=True)
@@ -131,7 +131,12 @@ def save_model(model, X, target, model_type):
     joblib.dump(
         {
             "model": model,
-            "features": feature_names
+            "features": feature_names,
+            "metrics": metrics,
+            "metadata": {
+                "algorithm": model_type,
+                "target": target
+            }
         },
         model_path
     )
