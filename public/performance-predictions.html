@@ -135,33 +135,43 @@
                 <div class="card-body p-4">
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
                         <h5 class="fw-bold mb-0"><i class="bi text-primary me-2"></i>Performance Predictions</h5>
-                        <div class="d-flex align-items-center gap-2 ms-auto">
+                        <div class="d-flex align-items-center gap-2 ms-auto flex-wrap">
                             <label for="limitSelect" class="form-label mb-0">Limit Rows</label>
                             <select id="limitSelect" class="form-select" style="width: 80px;">
                                 <option value="true" selected>Yes</option>
                                 <option value="false">No</option>
                             </select>
+                            <label for="pageSizeSelect" class="form-label mb-0">Page size</label>
+                            <select id="pageSizeSelect" class="form-select" style="width: 90px;" onchange="resetPaging();renderPredictionRows(predictionTableRows);">
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                            </select>
                             <button id="refreshBtn" class="btn btn-success" onclick="loadPredictionRows();clearStatus();">
                                 Refresh
                             </button>
+                            <button id="prevPageBtn" class="btn btn-outline-secondary" onclick="previousPage()">Prev</button>
+                            <button id="nextPageBtn" class="btn btn-outline-secondary" onclick="nextPage()">Next</button>
+                            <span id="pageInfo" class="small text-muted"></span>
                         </div>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-sm table-striped align-middle">
+                        <table id="predictionTable" class="table table-sm table-striped align-middle">
                             <thead>
                             <tr>
-                                <th>user id</th>
-                                <th>week start</th>
-                                <th>run count</th>
-                                <th>distance (km)</th>
-                                <th>avg pace (min/km)</th>
-                                <th>elevation (m)</th>
-                                <th>avg cadence</th>
-                                <th>avg hr</th>
-                                <th>longest run</th>
-                                <th>training load</th>
-                                <th class="prediction-header">prediction km</th>
-                                <th class="prediction-header">prediction pace</th>
+                                <th data-sort="user_id">user id</th>
+                                <th data-sort="week_start">week start</th>
+                                <th data-sort="run_count">run count</th>
+                                <th data-sort="total_distance_km">distance (km)</th>
+                                <th data-sort="avg_pace_min_per_km">avg pace (min/km)</th>
+                                <th data-sort="total_elevation_m">elevation (m)</th>
+                                <th data-sort="avg_cadence">avg cadence</th>
+                                <th data-sort="avg_hr">avg hr</th>
+                                <th data-sort="longest_run_km">longest run</th>
+                                <th data-sort="training_load">training load</th>
+                                <th class="prediction-header" data-sort="target_next_week_km_prediction">prediction km</th>
+                                <th class="prediction-header" data-sort="target_next_week_pace_prediction">prediction pace</th>
                             </tr>
                             </thead>
                             <tbody id="predictionTableBody">
@@ -188,11 +198,19 @@
     const query = new URLSearchParams(window.location.search);
     const preUserId = query.get('userId');
     let predictionTableRows = [];
+    let predictionSortColumn = 'user_id';
+    let predictionSortDirection = 'asc';
+    let predictionPage = 1;
 
     document.addEventListener('DOMContentLoaded', () => {
         if (preUserId) {
             document.getElementById('backLink').href = `users.html?userId=${encodeURIComponent(preUserId)}`;
         }
+        document.querySelectorAll('#predictionTable thead th[data-sort]').forEach(th => {
+            th.style.cursor = 'pointer';
+            th.title = 'Click to sort';
+            th.addEventListener('click', () => sortBy(th.dataset.sort));
+        });
         loadPredictionRows();
     });
 
@@ -204,14 +222,96 @@
         return value;
     }
 
+    function resetPaging() {
+        predictionPage = 1;
+    }
+
+    function getPageSize() {
+        return Math.max(1, parseInt(document.getElementById('pageSizeSelect').value || '10', 10));
+    }
+
+    function sortBy(column) {
+        if (predictionSortColumn === column) {
+            predictionSortDirection = predictionSortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            predictionSortColumn = column;
+            predictionSortDirection = 'asc';
+        }
+        predictionPage = 1;
+        renderPredictionRows(predictionTableRows);
+    }
+
+    function compareValues(a, b, column) {
+        const va = a?.[column];
+        const vb = b?.[column];
+        if (va === vb) return 0;
+        if (va === null || va === undefined || va === '') return 1;
+        if (vb === null || vb === undefined || vb === '') return -1;
+
+        if (column === 'week_start') {
+            return new Date(va) - new Date(vb);
+        }
+        if (typeof va === 'number' && typeof vb === 'number') {
+            return va - vb;
+        }
+        const na = Number(va);
+        const nb = Number(vb);
+        if (!Number.isNaN(na) && !Number.isNaN(nb)) {
+            return na - nb;
+        }
+        return String(va).localeCompare(String(vb));
+    }
+
+    function getSortedRows(rows) {
+        return [...rows].sort((a, b) => {
+            const result = compareValues(a, b, predictionSortColumn);
+            return predictionSortDirection === 'asc' ? result : -result;
+        });
+    }
+
+    function updatePageInfo(totalRows, totalPages) {
+        const pageInfo = document.getElementById('pageInfo');
+        const prevBtn = document.getElementById('prevPageBtn');
+        const nextBtn = document.getElementById('nextPageBtn');
+        if (pageInfo) {
+            pageInfo.textContent = totalRows ? `Page ${predictionPage} of ${totalPages}` : '';
+        }
+        if (prevBtn) prevBtn.disabled = predictionPage <= 1;
+        if (nextBtn) nextBtn.disabled = predictionPage >= totalPages;
+    }
+
+    function previousPage() {
+        if (predictionPage > 1) {
+            predictionPage--;
+            renderPredictionRows(predictionTableRows);
+        }
+    }
+
+    function nextPage() {
+        const totalPages = Math.max(1, Math.ceil(predictionTableRows.length / getPageSize()));
+        if (predictionPage < totalPages) {
+            predictionPage++;
+            renderPredictionRows(predictionTableRows);
+        }
+    }
+
     function renderPredictionRows(rows) {
         const tbody = document.getElementById('predictionTableBody');
-        if (!rows || rows.length === 0) {
+        const sortedRows = getSortedRows(rows || []);
+        const pageSize = getPageSize();
+        const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
+        if (predictionPage > totalPages) predictionPage = totalPages;
+        const start = (predictionPage - 1) * pageSize;
+        const pageRows = sortedRows.slice(start, start + pageSize);
+
+        updatePageInfo(sortedRows.length, totalPages);
+
+        if (!pageRows.length) {
             tbody.innerHTML = '<tr><td colspan="15" class="text-muted">No rows loaded yet.</td></tr>';
             return;
         }
 
-        tbody.innerHTML = rows.map(row => `
+        tbody.innerHTML = pageRows.map(row => `
             <tr>
                 <td>${formatValue(row.user_id)}</td>
                 <td>${formatValue(row.week_start)}</td>
@@ -238,6 +338,7 @@
             })
             .then(rows => {
                 predictionTableRows = rows || [];
+                predictionPage = 1;
                 renderPredictionRows(predictionTableRows);
             })
             .catch(err => {
