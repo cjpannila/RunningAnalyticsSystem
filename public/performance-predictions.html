@@ -126,7 +126,7 @@
                     </div>
                     <hr class="my-3">
                     <label for="userSelect" class="form-label fw-semibold">User</label>
-                    <select id="userSelect" class="form-select mb-3" onchange="loadPredictionRows();clearStatus();predict();">
+                    <select id="userSelect" class="form-select mb-3" onchange="reloadAndPredict()">
                         <option value="">All users</option>
                     </select>
                 </div>
@@ -145,7 +145,7 @@
                         </button>
                         <div class="d-flex align-items-center gap-2 ms-auto flex-wrap">
                             <label for="limitSelect" class="form-label mb-0">Limit Rows</label>
-                            <select id="limitSelect" class="form-select" style="width: 80px;" onchange="loadPredictionRows();clearStatus();">
+                            <select id="limitSelect" class="form-select" style="width: 80px;" onchange="reloadAndPredict()">
                                 <option value="true" selected>Yes</option>
                                 <option value="false">No</option>
                             </select>
@@ -156,7 +156,7 @@
                                 <option value="20">20</option>
                                 <option value="50">50</option>
                             </select>
-                            <button id="refreshBtn" class="btn btn-success" onclick="loadPredictionRows();clearStatus();">
+                            <button id="btnRefresh" class="btn btn-success" onclick="reloadAndPredict()">
                                 Refresh
                             </button>
                             <button id="prevPageBtn" class="btn btn-outline-secondary" onclick="previousPage()">Prev</button>
@@ -329,6 +329,12 @@
         }
     }
 
+    function reloadAndPredict() {
+        loadPredictionRows();
+        clearStatus();
+        predict();
+    }
+
     function renderPredictionRows(rows) {
         const tbody = document.getElementById('predictionTableBody');
         const sortedRows = getSortedRows(rows || []);
@@ -366,7 +372,6 @@
     function loadPredictionRows() {
         const limit = document.getElementById('limitSelect').value || 'true';
         const userId = document.getElementById("userSelect").value;
-        alert(userId)
         let url = `${API_BASE}/performance/prediction-rows?limit=${encodeURIComponent(limit)}`;
         if (userId) {
             url += `&userId=${encodeURIComponent(userId)}`;
@@ -598,6 +603,11 @@
 
     function showPredictionChart() {
         const targetType = document.getElementById('targetSelect').value;
+        const userSelect = document.getElementById("userSelect");
+        if (!userSelect.value) {
+            alert("Please select a user to display the prediction chart.");
+            return;
+        }
         if (!predictionTableRows || predictionTableRows.length === 0) {
             alert("No prediction data available.");
             return;
