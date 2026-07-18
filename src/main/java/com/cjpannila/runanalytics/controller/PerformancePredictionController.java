@@ -23,6 +23,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -119,13 +126,13 @@ public class PerformancePredictionController {
 
             List<Map<String, Object>> predictions = pythonResponse.getBody() == null ? List.of() : pythonResponse.getBody();
 
-            return ResponseEntity.ok(PredictionResponseDto.builder()
-                    .message("Predictions generated successfully")
-                    .target(target)
-                    .datasetPath(resolvePredictionDatasetFile().toAbsolutePath().toString())
-                    .rowsGenerated(datasetResult.getRowsGenerated())
-                    .predictions(predictions)
-                    .build());
+            PredictionResponseDto result = new PredictionResponseDto();
+            result.setMessage("Predictions generated successfully");
+            result.setTarget(target);
+            result.setDatasetPath(resolvePredictionDatasetFile().toAbsolutePath().toString());
+            result.setRowsGenerated(datasetResult.getRowsGenerated());
+            result.setPredictions(getShiftedPredictions(predictions, target));
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             logger.error("Failed to generate predictions", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -133,6 +140,42 @@ public class PerformancePredictionController {
                             .message("Error")
                             .target(target)
                             .build());
+        }
+    }
+
+    //Shift predictions to reflect next week with the same user_id and target prediction value
+    private List<Map<String, Object>> getShiftedPredictions(List<Map<String, Object>> predictions, String target) {
+        List<Map<String, Object>> shiftedPredictions = new ArrayList<>();
+        for (Map<String, Object> prediction : predictions) {
+            Map<String, Object> shiftedPrediction = new HashMap<>(prediction);
+            String currentUserId = prediction.get("user_id").toString();
+            String currentWeekStart = prediction.get("week_start").toString();
+            shiftedPrediction.put("user_id", currentUserId);
+            shiftedPrediction.put(target + "_prediction", prediction.get(target + "_prediction"));
+            shiftedPrediction.put("week_start", getNextWeekStartDate(predictions, currentWeekStart, Integer.valueOf(currentUserId)));
+            shiftedPredictions.add(shiftedPrediction);
+        }
+        return shiftedPredictions;
+    }
+
+    private String getNextWeekStartDate(List<Map<String, Object>> predictions, String currentWeekStart, Integer currentUserId) {
+        LocalDate weekStartDate = LocalDate.parse(currentWeekStart, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        LocalDate nextWeekStartDate = weekStartDate.plusWeeks(1);
+        LocalDate lastMonday = LocalDate.now()
+                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+        boolean nextWeekExists = predictions.stream().anyMatch(p ->
+                currentUserId.equals(((Number) p.get("user_id")).intValue()) &&
+                        nextWeekStartDate.toString().equals(p.get("week_start"))
+        );
+        if (nextWeekExists) {
+            return nextWeekStartDate.toString();
+        } else {
+            if (nextWeekStartDate.isBefore(lastMonday)) {
+                return getNextWeekStartDate(predictions, nextWeekStartDate.toString(), currentUserId);
+            } else {
+                return nextWeekStartDate.toString();
+            }
         }
     }
 
