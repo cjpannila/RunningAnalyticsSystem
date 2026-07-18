@@ -140,7 +140,7 @@
                         </button>
                         <div class="d-flex align-items-center gap-2 ms-auto flex-wrap">
                             <label for="limitSelect" class="form-label mb-0">Limit Rows</label>
-                            <select id="limitSelect" class="form-select" style="width: 80px;">
+                            <select id="limitSelect" class="form-select" style="width: 80px;" onchange="loadPredictionRows();clearStatus();">
                                 <option value="true" selected>Yes</option>
                                 <option value="false">No</option>
                             </select>
@@ -444,7 +444,7 @@
     async function evaluateModel() {
         const btn = document.getElementById('evaluateBtn');
         const statusBox = document.getElementById('statusBox');
-        const target = document.getElementById('targetSelect').value || 'target_next_week_km';
+            const target = document.getElementById('targetSelect').value || 'target_next_week_km';
         const modelType = document.getElementById('modelTypeSelect').value || 'random_forest';
 
         btn.disabled = true;
@@ -556,6 +556,7 @@
     function formatPace(p){ if(!p || Number(p)<=0) return '-'; const m=Math.floor(p); const s=Math.round((p-m)*60); return `${m}:${String(s).padStart(2,'0')}`; }
 
     function showPredictionChart() {
+        const targetType = document.getElementById('targetSelect').value;
         if (!predictionTableRows || predictionTableRows.length === 0) {
             alert("No prediction data available.");
             return;
@@ -568,15 +569,15 @@
             alert('Bootstrap JavaScript is not loaded, so the chart modal cannot open.');
             return;
         }
-        const labels = predictionTableRows.map(
-            r => r.week_start
-        );
-        const actualDistance = predictionTableRows.map(
-            r => r.total_distance_km
-        );
-        const predictedDistance = predictionTableRows.map(
-            r => r.target_next_week_km_prediction
-        );
+        const isPace = targetType === 'target_next_week_pace';
+        const predictionField = isPace ? 'target_next_week_pace_prediction' : 'target_next_week_km_prediction';
+        const actualField = isPace ? 'avg_pace_min_per_km' : 'total_distance_km';
+        const chartTitle = isPace ? 'Weekly Running Pace' : 'Weekly Running Distance';
+        const yAxisTitle = isPace ? 'Pace (min/km)' : 'Distance (km)';
+
+        const labels = predictionTableRows.map(r => r.week_start);
+        const actualData = predictionTableRows.map(r => r[actualField]);
+        const predictedData = predictionTableRows.map(r => r[predictionField]);
         const ctx = document
             .getElementById("predictionChart");
         if (predictionChartInstance) {
@@ -588,13 +589,13 @@
                 labels: labels,
                 datasets: [
                     {
-                        label: "Actual Distance (km)",
-                        data: actualDistance,
+                        label: isPace ? "Actual Pace (min/km)" : "Actual Distance (km)",
+                        data: actualData,
                         tension: 0.3
                     },
                     {
-                        label: "Predicted Distance (km)",
-                        data: predictedDistance,
+                        label: isPace ? "Predicted Pace (min/km)" : "Predicted Distance (km)",
+                        data: predictedData,
                         tension: 0.3
                     }
                 ]
@@ -604,7 +605,7 @@
                 plugins: {
                     title: {
                         display: true,
-                        text: "Weekly Running Performance"
+                        text: chartTitle
                     },
                     zoom: {
                         pan: {
@@ -629,7 +630,7 @@
                     y: {
                         title: {
                             display:true,
-                            text:"Distance (km)"
+                            text: yAxisTitle
                         }
                     },
                     x: {
