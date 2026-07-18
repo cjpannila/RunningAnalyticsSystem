@@ -17,5 +17,6 @@ public class ClubMemberWeeklyStatsDto {
     private Double averagePaceMinPerKm;
     private Double totalElevationM;
     private Long totalRunningTimeS;
+    private Double longestRunKm;
 }
 

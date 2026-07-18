@@ -34,3 +34,22 @@ Main features
 - Analyse historical running data
 - Generate predictions related to performance, training load and recovery
 - Provide meaningful insights into running performance for recreational running clubs
+
+ML training
+- Reads training_dataset.csv custom path with `--input`
+- Run python ML/train_model.py to train a Random Forest regressor
+- The trained model is saved as `ML/trained_model.pkl`
+- Evaluation metrics are printed to the console after training
+
+Run ML prediction module
+Start Python FastAPI server with the following command:
+uvicorn ml_server:app --host 127.0.0.1 --port 8001
+
+It has below endpoints:
+- GET /health: Returns a simple health check response to verify that the server is running.
+- POST /train: Accepts a JSON payload with training data and retrains the model, returning the updated evaluation metrics.
+  - parameters target, model_type
+- POST /evaluate: Accepts a JSON payload with evaluation data and returns the evaluation metrics for the current model.
+  - parameters target, model_type
+- POST /predict: Accepts a JSON payload with input features and returns the predicted performance metrics.
+  - parameters target, model_type

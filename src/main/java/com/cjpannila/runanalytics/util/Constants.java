@@ -12,4 +12,16 @@ public class Constants {
     //Strava API
     public static final String API_ATHLETE_CLUBS = "/athlete/clubs";
     public static final String API_ATHLETE_ACTIVITIES = "/athlete/activities";
+
+    //Estimated max HR (can be user-specific later)
+    public static final double MAX_HEART_RATE = 190.0;
+
+    public static final String TRAINING_DATASET_FILE_NAME = "training_dataset.csv";
+    public static final String PREDICTION_DATASET_FILE_NAME = "prediction_dataset.csv";
+
+    public static final int PREDICTION_DATAROWS_PER_USER = 5;
+
+    public static final String DOWNLOADS = "Downloads";
+
+    public static final String RANDOM_FOREST = "random_forest";
 }

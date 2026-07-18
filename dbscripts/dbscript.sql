@@ -64,15 +64,22 @@ CREATE TABLE activities (
 );
 
 CREATE TABLE weekly_summary (
-    id SERIAL PRIMARY KEY,
     user_id BIGINT REFERENCES users(user_id),
-
-    week_start_date DATE,
-
-    total_distance_m FLOAT,
-    total_runs INT,
-    avg_pace FLOAT,
-    avg_heartrate FLOAT
+    week_start DATE,
+    run_count INT,
+    total_distance_km FLOAT,
+    avg_pace_min_per_km FLOAT,
+    total_elevation_m FLOAT,
+    total_running_time_s BIGINT,
+    avg_cadence FLOAT,
+    avg_hr FLOAT,
+    longest_run_km FLOAT,
+    training_load FLOAT,
+    target_next_week_pace FLOAT,
+    target_next_week_km FLOAT,
+    predicted_next_week_pace FLOAT,
+    predicted_next_week_km FLOAT,
+    PRIMARY KEY (user_id, week_start)
 );
 
 CREATE INDEX idx_activities_user ON activities(user_id);

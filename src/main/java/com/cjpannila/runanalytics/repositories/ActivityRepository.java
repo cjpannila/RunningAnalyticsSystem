@@ -54,6 +54,38 @@ public interface ActivityRepository extends CrudRepository<Activity, Long> {
             LocalDateTime from,
             LocalDateTime to);
 
+    @Query("""
+            SELECT AVG(a.avgCadence)
+            FROM Activity a
+            WHERE a.user.userId = :userId
+            AND a.activityType = 'Run'
+            AND a.avgCadence IS NOT NULL
+            AND a.avgCadence > 0
+            """)
+    Double getAllTimeAverageCadence(@Param("userId") Long userId);
+
+    @Query("""
+            SELECT AVG(a.avgHeartrateBpm)
+            FROM Activity a
+            WHERE a.user.userId = :userId
+            AND a.activityType = 'Run'
+            AND a.avgHeartrateBpm IS NOT NULL
+            AND a.avgHeartrateBpm > 0
+            """)
+    Double getAllTimeAverageHeartRate(@Param("userId") Long userId);
+
+    @Query("""
+            SELECT (SUM(a.elevationGainM) / SUM(a.distanceM / 1000.0))
+            FROM Activity a
+            WHERE a.user.userId = :userId
+            AND a.activityType = 'Run'
+            AND a.elevationGainM IS NOT NULL
+            AND a.elevationGainM > 0
+            AND a.distanceM IS NOT NULL
+            AND a.distanceM > 0
+            """)
+    Double getAllTimeAverageElevationPerKm(@Param("userId") Long userId);
+
     @Query("SELECT MIN(a.startTime) FROM Activity a WHERE a.user.userId IN :userIds AND a.activityType = 'Run'")
     LocalDateTime findMinStartTimeForUsers(@Param("userIds") java.util.List<Long> userIds);
 

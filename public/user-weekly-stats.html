@@ -75,6 +75,9 @@
             <option value="50">50</option>
             <option value="100">100</option>
         </select>
+        <button class="btn btn-success" onclick="exportToCSV()">
+            <i class="bi bi-file-earmark-spreadsheet"></i>Export CSV
+        </button>
     </div>
 
     <div id="errorAlert" class="alert alert-danger error-alert" role="alert"></div>
@@ -309,7 +312,9 @@
 
     function formatNumber(v,d){ if (v===null||v===undefined) return '-'; return Number(v).toFixed(d); }
     function formatDuration(s){ if(!s) return '0h 0m 0s'; const sec = Number(s); const h=Math.floor(sec/3600); const m=Math.floor((sec%3600)/60); const se=sec%60; return `${h}h ${m}m ${se}s`; }
+    function formatDurationReport(s){ if(!s) return '00:00:00'; const sec = Number(s); const h=Math.floor(sec/3600); const m=Math.floor((sec%3600)/60); const se=sec%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(se).padStart(2,'0')}`; }
     function formatPace(p){ if(!p || Number(p)<=0) return '-'; const m=Math.floor(p); const s=Math.round((p-m)*60); return `${m}:${String(s).padStart(2,'0')} min/km`; }
+    function formatPaceReport(p){ if(!p || Number(p)<=0) return '-'; const m=Math.floor(p); const s=Math.round((p-m)*60); return `${m}:${String(s).padStart(2,'0')}`; }
     function showLoading(s){ document.getElementById('loadingSpinner').style.display = s? 'block':'none'; }
     function showError(msg){ const a=document.getElementById('errorAlert'); a.textContent=msg; a.style.display='block'; }
     function hideError(){ document.getElementById('errorAlert').style.display='none'; }
@@ -317,6 +322,57 @@
     function toIsoDate(date){ const yyyy=date.getFullYear(); const mm=String(date.getMonth()+1).padStart(2,'0'); const dd=String(date.getDate()).padStart(2,'0'); return `${yyyy}-${mm}-${dd}`; }
     function formatShortDate(date){ return date.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'2-digit'}); }
     function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#39;"); }
+
+    function exportToCSV() {
+
+        if (_user_filteredRows.length === 0) {
+            alert("No weekly stats to export.");
+            return;
+        }
+        const headers = [
+            "Week",
+            "Run Count",
+            "Total Distance (km)",
+            "Average Pace (min/km)",
+            "Total Elevation (m)",
+            "Total Running Time",
+            "Average Cadence",
+            "Average Heart Rate",
+            "Longest Run (km)",
+            "Training Load"
+        ];
+
+        const rows = _user_filteredRows.map(u => [
+            u.weekStart || '',
+            u.runCount ?? 0,
+            formatNumber(u.totalDistanceKm, 2),
+            formatPaceReport(u.averagePaceMinPerKm),
+            formatNumber(u.totalElevationM, 1),
+            formatDurationReport(u.totalRunningTimeS),
+            formatNumber(u.averageCadence, 0),
+            formatNumber(u.averageHeartRate, 1),
+            formatNumber(u.longestRunKm, 2),
+            formatNumber(u.trainingLoad, 2)
+        ]);
+
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(r => r.join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], {
+            type: "text/csv;charset=utf-8;"
+        });
+
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = preUserId ? `user-${preUserId}-weekly-stats.csv` : "user-weekly-stats.csv";
+        link.click();
+
+        URL.revokeObjectURL(url);
+    }
 </script>
 </body>
 </html>

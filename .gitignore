@@ -34,3 +34,8 @@ build/
 
 .mvn/
 AGENTS.md
+
+/ML/.venv
+/ML/*.pkl
+/ML/__pycache__/
+/ML/models/*.pkl

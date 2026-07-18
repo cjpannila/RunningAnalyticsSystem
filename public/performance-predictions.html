@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Predictions - Running Analytics System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root { --brand: #FC4C02; --brand-dark: #e63c00; --bg: #f8f9fa; }
+        body { background-color: var(--bg); }
+        .navbar { background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%); }
+        .navbar-brand, .navbar-text { color: #fff !important; }
+        .container-top { margin-top: 100px; margin-bottom: 50px; }
+        .page-title { color: var(--brand); font-weight: 700; }
+        .info-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
+        .column-badge { background: #f1f3f5; border-radius: 6px; font-size: 0.85rem; padding: 3px 8px; font-family: monospace; }
+        .prediction-cell {
+            background-color: #fff3cd !important;
+            font-weight: 600;
+            color: #856404 !important;
+        }
+        .prediction-header {
+            background-color: #ffb31a !important;
+            color: #ffffff !important;
+        }
+        footer {
+            background: #333;
+            color: #aaa;
+            padding: 40px 20px 20px;
+            text-align: center;
+            margin-top: 60px;
+            font-size: 0.9rem;
+        }
+        footer a { color: #FC4C02; text-decoration: none; }
+        .footer-divider { color: #555; margin: 0 5px; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand" id="backLink" href="index.html"><i class="bi bi-arrow-left"></i> Back to Home</a>
+        <span class="navbar-text ms-auto"><i class="bi bi-graph-up-arrow"></i> Performance Predictions</span>
+    </div>
+</nav>
+
+<div class="container container-top">
+    <div class="mb-4">
+        <h1 class="page-title"><i class="bi me-2"></i>Performance Predictions</h1>
+        <p class="text-muted">Generate machine-learning based performance predictions.</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Generate card -->
+        <div class="col-lg-6">
+            <div class="card info-card h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3"><i class="bi text-success me-2"></i>ML Training Pipeline</h5>
+
+                    <div id="statusBox" class="alert d-none mb-2" role="alert"></div>
+
+                    <button id="saveBtn" class="btn btn-success me-2 mb-2" onclick="saveWeeklySummary()"
+                        title="This will save all weekly summary records to the database. It may take a while depending on the number of users and activities.">
+                        Save Training Data
+                    </button>
+                    <button id="generateBtn" class="btn btn-success me-2 mb-2" onclick="generateDataset()"
+                        title="This will generate the training dataset CSV file and save to Downloads">
+                        Generate Training Dataset
+                    </button>
+                    <div class="mt-3">
+                        <label for="targetSelect" class="form-label fw-semibold">Training target</label>
+                        <select id="targetSelect" class="form-select mb-2">
+                            <option value="target_next_week_km" selected>target_next_week_km</option>
+                            <option value="target_next_week_pace">target_next_week_pace</option>
+                        </select>
+                        <label for="modelTypeSelect" class="form-label fw-semibold">Model type</label>
+                        <select id="modelTypeSelect" class="form-select mb-2">
+                            <option value="random_forest" selected>Random Forest</option>
+                            <option value="linear_regression">Linear Regression</option>
+                            <option value="gradient_boosting">Gradient Boosting</option>
+                        </select>
+                    </div>
+                    <button id="trainBtn" class="btn btn-success me-2 mb-2" onclick="trainModel()"
+                        title="This will train the machine learning model using the generated training dataset.">
+                        Train Model
+                    </button>
+                    <button id="evaluateBtn" class="btn btn-success me-2 mb-2" onclick="evaluateModel()"
+                            title="This will evaluate the machine learning model using the generated training dataset.">
+                        Evaluate Model
+                    </button>
+                    <button id="btnPredict" class="btn btn-success mb-2" onclick="predict()">
+                        Predict
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columns card -->
+        <div class="col-lg-6">
+            <div class="card info-card h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3"><i class="bi text-primary me-2"></i>Training Dataset</h5>
+                    <p class="text-muted small mb-3">
+                        <code>training_dataset.csv</code> contains weekly running statistics
+                        for all runners from the earliest recorded activity to the most recent.
+                        Each row represents one week for one user.
+                    </p>
+                    <h5 class="fw-bold mb-3"><i class="bi text-primary me-2"></i>Generated Features</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="column-badge">week_start</span>
+                        <span class="column-badge">run_count</span>
+                        <span class="column-badge">total_distance_km</span>
+                        <span class="column-badge">avg_pace_min_per_km</span>
+                        <span class="column-badge">total_elevation_m</span>
+                        <span class="column-badge">total_running_time_s</span>
+                        <span class="column-badge">avg_cadence</span>
+                        <span class="column-badge">avg_hr</span>
+                        <span class="column-badge">longest_run_km</span>
+                        <span class="column-badge">training_load</span>
+                        <span class="column-badge">target_next_week_pace</span>
+                        <span class="column-badge">target_next_week_km</span>
+                    </div>
+                    <div id="datasetSummary" class="small text-muted">
+                        <div><strong>Rows generated:</strong> <span id="rowsGeneratedValue">-</span></div>
+                        <div><strong>Activities used:</strong> <span id="activitiesUsedValue">-</span></div>
+                    </div>
+                    <hr class="my-3">
+                    <label for="userSelect" class="form-label fw-semibold">User</label>
+                    <select id="userSelect" class="form-select mb-3" onchange="reloadAndPredict()">
+                        <option value="">All users</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-1">
+        <div class="col-12">
+            <div class="card info-card h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                        <h5 class="fw-bold mb-0"><i class="bi text-primary me-2"></i>Performance Predictions</h5>
+                        <button class="btn btn-outline-primary btn-sm" onclick="showPredictionChart()">
+                            <i class="bi bi-bar-chart-line"></i> View Chart
+                        </button>
+                        <div class="d-flex align-items-center gap-2 ms-auto flex-wrap">
+                            <label for="limitSelect" class="form-label mb-0">Limit Rows</label>
+                            <select id="limitSelect" class="form-select" style="width: 80px;" onchange="reloadAndPredict()">
+                                <option value="true" selected>Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                            <label for="pageSizeSelect" class="form-label mb-0">Page size</label>
+                            <select id="pageSizeSelect" class="form-select" style="width: 90px;" onchange="resetPaging();renderPredictionRows(predictionTableRows);">
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                            </select>
+                            <button id="btnRefresh" class="btn btn-success" onclick="reloadAndPredict()">
+                                Refresh
+                            </button>
+                            <button id="prevPageBtn" class="btn btn-outline-secondary" onclick="previousPage()">Prev</button>
+                            <button id="nextPageBtn" class="btn btn-outline-secondary" onclick="nextPage()">Next</button>
+                            <span id="pageInfo" class="small text-muted"></span>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="predictionTable" class="table table-sm table-striped align-middle">
+                            <thead>
+                            <tr>
+                                <th data-sort="user_id">user id</th>
+                                <th data-sort="week_start">week start</th>
+                                <th data-sort="run_count">run count</th>
+                                <th data-sort="total_distance_km">distance (km)</th>
+                                <th data-sort="avg_pace_min_per_km">avg pace (min/km)</th>
+                                <th data-sort="total_elevation_m">elevation (m)</th>
+                                <th data-sort="avg_cadence">avg cadence</th>
+                                <th data-sort="avg_hr">avg hr</th>
+                                <th data-sort="longest_run_km">longest run</th>
+                                <th data-sort="training_load">training load</th>
+                                <th class="prediction-header" data-sort="target_next_week_km_prediction">prediction km</th>
+                                <th class="prediction-header" data-sort="target_next_week_pace_prediction">prediction pace</th>
+                            </tr>
+                            </thead>
+                            <tbody id="predictionTableBody">
+                            <tr><td colspan="15" class="text-muted">No rows loaded yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="container">
+        <p style="margin:0;"><strong>Running Analytics System</strong> <span class="footer-divider">•</span> MSc Research Project</p>
+        <p style="margin-top:10px; font-size:0.85rem;">&copy; 2026 All rights reserved. | Chinthana Pannila</p>
+    </div>
+</footer>
+
+<script>
+    const API_BASE = "/runanalytics/api";
+    const PY_TRAINING_BASE = "http://127.0.0.1:8001";
+    const query = new URLSearchParams(window.location.search);
+    const preUserId = query.get('userId');
+    let predictionTableRows = [];
+    let predictionSortColumn = 'user_id';
+    let predictionSortDirection = 'asc';
+    let predictionPage = 1;
+    let predictionChartInstance = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (preUserId) {
+            document.getElementById('backLink').href = `users.html?userId=${encodeURIComponent(preUserId)}`;
+        }
+        document.querySelectorAll('#predictionTable thead th[data-sort]').forEach(th => {
+            th.style.cursor = 'pointer';
+            th.title = 'Click to sort';
+            th.addEventListener('click', () => sortBy(th.dataset.sort));
+        });
+        loadUsers();
+        loadPredictionRows();
+    });
+
+    function loadUsers() {
+        fetch(`${API_BASE}/users`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server error ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(users => {
+                const select = document.getElementById("userSelect");
+                select.innerHTML = '<option value="">All Users</option>';
+                users.forEach(user => {
+                    const option = document.createElement("option");
+                    option.value = user.userId;
+                    option.textContent =
+                        `${user.firstname} ${user.lastname}`;
+                    select.appendChild(option);
+                });
+            })
+            .catch(err => {
+                console.error("Failed to load users", err);
+            });
+    }
+
+    function formatValue(value, decimals = null) {
+        if (value === null || value === undefined || value === '') return '';
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return decimals === null ? value : value.toFixed(decimals);
+        }
+        return value;
+    }
+
+    function resetPaging() {
+        predictionPage = 1;
+    }
+
+    function getPageSize() {
+        return Math.max(1, parseInt(document.getElementById('pageSizeSelect').value || '10', 10));
+    }
+
+    function sortBy(column) {
+        if (predictionSortColumn === column) {
+            predictionSortDirection = predictionSortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            predictionSortColumn = column;
+            predictionSortDirection = 'asc';
+        }
+        predictionPage = 1;
+        renderPredictionRows(predictionTableRows);
+    }
+
+    function compareValues(a, b, column) {
+        const va = a?.[column];
+        const vb = b?.[column];
+        if (va === vb) return 0;
+        if (va === null || va === undefined || va === '') return 1;
+        if (vb === null || vb === undefined || vb === '') return -1;
+
+        if (column === 'week_start') {
+            return new Date(va) - new Date(vb);
+        }
+        if (typeof va === 'number' && typeof vb === 'number') {
+            return va - vb;
+        }
+        const na = Number(va);
+        const nb = Number(vb);
+        if (!Number.isNaN(na) && !Number.isNaN(nb)) {
+            return na - nb;
+        }
+        return String(va).localeCompare(String(vb));
+    }
+
+    function getSortedRows(rows) {
+        return [...rows].sort((a, b) => {
+            const result = compareValues(a, b, predictionSortColumn);
+            return predictionSortDirection === 'asc' ? result : -result;
+        });
+    }
+
+    function updatePageInfo(totalRows, totalPages) {
+        const pageInfo = document.getElementById('pageInfo');
+        const prevBtn = document.getElementById('prevPageBtn');
+        const nextBtn = document.getElementById('nextPageBtn');
+        if (pageInfo) {
+            pageInfo.textContent = totalRows ? `Page ${predictionPage} of ${totalPages}` : '';
+        }
+        if (prevBtn) prevBtn.disabled = predictionPage <= 1;
+        if (nextBtn) nextBtn.disabled = predictionPage >= totalPages;
+    }
+
+    function previousPage() {
+        if (predictionPage > 1) {
+            predictionPage--;
+            renderPredictionRows(predictionTableRows);
+        }
+    }
+
+    function nextPage() {
+        const totalPages = Math.max(1, Math.ceil(predictionTableRows.length / getPageSize()));
+        if (predictionPage < totalPages) {
+            predictionPage++;
+            renderPredictionRows(predictionTableRows);
+        }
+    }
+
+    function reloadAndPredict() {
+        loadPredictionRows();
+        clearStatus();
+        predict();
+    }
+
+    function renderPredictionRows(rows) {
+        const tbody = document.getElementById('predictionTableBody');
+        const sortedRows = getSortedRows(rows || []);
+        const pageSize = getPageSize();
+        const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
+        if (predictionPage > totalPages) predictionPage = totalPages;
+        const start = (predictionPage - 1) * pageSize;
+        const pageRows = sortedRows.slice(start, start + pageSize);
+
+        updatePageInfo(sortedRows.length, totalPages);
+
+        if (!pageRows.length) {
+            tbody.innerHTML = '<tr><td colspan="15" class="text-muted">No rows loaded yet.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = pageRows.map(row => `
+            <tr>
+                <td>${formatValue(row.user_id)}</td>
+                <td>${formatValue(row.week_start)}</td>
+                <td>${formatValue(row.run_count)}</td>
+                <td>${formatValue(row.total_distance_km, 2)}</td>
+                <td>${formatPace(formatValue(row.avg_pace_min_per_km, 2))}</td>
+                <td>${formatValue(row.total_elevation_m, 1)}</td>
+                <td>${formatValue(row.avg_cadence, 1)}</td>
+                <td>${formatValue(row.avg_hr, 1)}</td>
+                <td>${formatValue(row.longest_run_km, 2)}</td>
+                <td>${formatValue(row.training_load, 3)}</td>
+                <td class="prediction-cell">${formatValue(row.target_next_week_km_prediction, 2)}</td>
+                <td class="prediction-cell">${formatPace(formatValue(row.target_next_week_pace_prediction, 2))}</td>
+            </tr>
+        `).join('');
+    }
+
+    function loadPredictionRows() {
+        const limit = document.getElementById('limitSelect').value || 'true';
+        const userId = document.getElementById("userSelect").value;
+        let url = `${API_BASE}/performance/prediction-rows?limit=${encodeURIComponent(limit)}`;
+        if (userId) {
+            url += `&userId=${encodeURIComponent(userId)}`;
+        }
+        fetch(url)
+            .then(r => {
+                if (!r.ok) throw new Error(`Server error: ${r.status}`);
+                return r.json();
+            })
+            .then(rows => {
+                predictionTableRows = rows || [];
+                predictionPage = 1;
+                renderPredictionRows(predictionTableRows);
+            })
+            .catch(err => {
+                document.getElementById('predictionTableBody').innerHTML =
+                    `<tr><td colspan="15" class="text-danger">Failed to load prediction rows: ${err.message}</td></tr>`;
+            });
+    }
+
+    function clearStatus() {
+        const statusBox = document.getElementById('statusBox');
+        statusBox.className = 'alert d-none mb-2';
+        statusBox.textContent = '';
+    }
+
+    function mergePredictionResults(predictions) {
+        const predictionMap = new Map(
+            (predictions || []).map(pred => [`${pred.user_id}|${pred.week_start}`, pred])
+        );
+
+        predictionTableRows = predictionTableRows.map(row => {
+            const pred = predictionMap.get(`${row.user_id}|${row.week_start}`);
+            return pred ? {
+                ...row,
+                ...pred
+            } : row;
+        });
+        renderPredictionRows(predictionTableRows);
+    }
+
+    function saveWeeklySummary() {
+        const btn = document.getElementById('saveBtn');
+        const statusBox = document.getElementById('statusBox');
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Saving…';
+        statusBox.className = 'alert alert-info d-block';
+        statusBox.textContent = 'Saving weekly summary records. This may take a while…';
+
+        fetch(`${API_BASE}/performance/save-weekly-summary`)
+            .then(r => {
+                return r.text().then(message => {
+                    if (!r.ok) {
+                        throw new Error(message || `Server error: ${r.status}`);
+                    }
+                    return message || 'Saved';
+                });
+            })
+            .then(message => {
+                statusBox.className = 'alert alert-success d-block';
+                statusBox.textContent = message;
+                btn.disabled = false;
+                btn.innerHTML = 'Save Training Data';
+            })
+            .catch(err => {
+                statusBox.className = 'alert alert-danger d-block';
+                statusBox.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>Failed to save weekly summary: ${err.message}`;
+                btn.disabled = false;
+                btn.innerHTML = 'Save Training Data';
+            });
+    }
+
+    async function trainModel() {
+        const btn = document.getElementById('trainBtn');
+        const statusBox = document.getElementById('statusBox');
+        const target = document.getElementById('targetSelect').value || 'target_next_week_km';
+        const modelType = document.getElementById('modelTypeSelect').value || 'random_forest';
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Training…';
+        statusBox.className = 'alert alert-info d-block';
+        statusBox.textContent = 'Training the model on the Python server. This may take a while…';
+
+        const response = await fetch(`${PY_TRAINING_BASE}/train?target=${encodeURIComponent(target)}&model_type=${encodeURIComponent(modelType)}`, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || `Server error: ${response.status}`);
+        }
+
+        statusBox.className = 'alert alert-success d-block';
+        statusBox.innerHTML = `
+                    <div><strong>${result.message || 'Model trained successfully'}</strong></div>
+                    <div class="small mt-1">Target: <code>${result.target || target}</code></div>
+                    <div class="small mt-1">Saved to: <code>${result.modelPath || 'trained_model.pkl'}</code></div>
+                    <div class="small mt-1">MAE: ${result.mae?.toFixed ? result.mae.toFixed(4) : result.mae}</div>
+                    <div class="small">RMSE: ${result.rmse?.toFixed ? result.rmse.toFixed(4) : result.rmse}</div>
+                    <div class="small">R2: ${result.r2?.toFixed ? result.r2.toFixed(4) : result.r2}</div>
+                `;
+        btn.disabled = false;
+        btn.innerHTML = 'Train Model';
+    }
+
+    async function evaluateModel() {
+        const btn = document.getElementById('evaluateBtn');
+        const statusBox = document.getElementById('statusBox');
+            const target = document.getElementById('targetSelect').value || 'target_next_week_km';
+        const modelType = document.getElementById('modelTypeSelect').value || 'random_forest';
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Evaluating…';
+        statusBox.className = 'alert alert-info d-block';
+        statusBox.textContent = 'Evaluating the model on the Python server. This may take a while…';
+
+        const response = await fetch(`${PY_TRAINING_BASE}/evaluate?target=${encodeURIComponent(target)}&model_type=${encodeURIComponent(modelType)}`, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.message || `Server error: ${response.status}`);
+        }
+        statusBox.className = 'alert alert-success d-block';
+        statusBox.innerHTML = `
+                    <div class="small mt-1">Target: <code>${result.target || target}</code></div>
+                    <div class="small mt-1">Model Type: <code>${result.modelType || modelType}</code></div>
+                    <div class="small mt-1">MAE: ${result.mae?.toFixed ? result.mae.toFixed(4) : result.mae}</div>
+                    <div class="small">RMSE: ${result.rmse?.toFixed ? result.rmse.toFixed(4) : result.rmse}</div>
+                    <div class="small">R2: ${result.r2?.toFixed ? result.r2.toFixed(4) : result.r2}</div>
+                `;
+        btn.disabled = false;
+        btn.innerHTML = 'Evaluate Model';
+    }
+
+    function predict() {
+        const btn = document.getElementById('btnPredict');
+        const statusBox = document.getElementById('statusBox');
+        const target = document.getElementById('targetSelect').value || 'target_next_week_km';
+        const modelType = document.getElementById('modelTypeSelect').value || 'random_forest';
+        const limit = document.getElementById('limitSelect').value || 'true';
+        const userId = document.getElementById("userSelect").value;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Predicting…';
+        statusBox.className = 'alert alert-info d-block';
+        statusBox.textContent = 'Generating prediction dataset and calling the ML server…';
+
+        let url = `${API_BASE}/performance/predict?target=${encodeURIComponent(target)}&model_type=${encodeURIComponent(modelType)}&limit=${encodeURIComponent(limit)}`;
+        if (userId) {
+            url += `&userId=${encodeURIComponent(userId)}`;
+        }
+        fetch(url)
+            .then(async r => {
+                const payload = await r.json().catch(() => null);
+                if (!r.ok) {
+                    throw new Error((payload && payload.message) || `Server error: ${r.status}`);
+                }
+                return payload;
+            })
+            .then(payload => {
+                statusBox.className = 'alert alert-success d-block';
+                statusBox.innerHTML = `
+                    <div><strong>${payload.message || 'Predictions generated successfully'}</strong></div>
+                    <div class="small mt-1">Target: <code>${payload.target || target}</code></div>
+                    <div class="small mt-1">Dataset: <code>${payload.datasetPath || 'prediction_dataset.csv'}</code></div>
+                    <div class="small mt-1">Rows: ${payload.rowsGenerated || 0}</div>
+                `;
+
+                if (payload.predictions && payload.predictions.length) {
+                    mergePredictionResults(payload.predictions);
+                }
+            })
+            .catch(err => {
+                statusBox.className = 'alert alert-danger d-block';
+                statusBox.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>Failed to predict: ${err.message}`;
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = 'Predict';
+            });
+    }
+
+    function generateDataset() {
+        const btn = document.getElementById('generateBtn');
+        const statusBox = document.getElementById('statusBox');
+
+        // Show loading state
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Generating…';
+        statusBox.className = 'alert alert-info d-block';
+        statusBox.textContent = 'Querying all user activities across all weeks. This may take a while…';
+
+        fetch(`${API_BASE}/performance/training-dataset`)
+            .then(async r => {
+                const message = await r.text();
+                if (!r.ok) throw new Error(message || `Server error: ${r.status}`);
+                return {
+                    message,
+                    rowsGenerated: r.headers.get('X-Rows-Generated') || '0',
+                    activitiesUsed: r.headers.get('X-Activities-Used') || '0'
+                };
+            })
+            .then(({ message, rowsGenerated, activitiesUsed }) => {
+                statusBox.className = 'alert alert-success d-block';
+                statusBox.textContent = message;
+                document.getElementById('rowsGeneratedValue').textContent = rowsGenerated;
+                document.getElementById('activitiesUsedValue').textContent = activitiesUsed;
+                btn.disabled = false;
+                btn.innerHTML = 'Generate Training Dataset';
+            })
+            .catch(err => {
+                statusBox.className = 'alert alert-danger d-block';
+                statusBox.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>Failed to generate dataset: ${err.message}`;
+                btn.disabled = false;
+                btn.innerHTML = 'Generate Training Dataset';
+            });
+    }
+
+    function formatPace(p){ if(!p || Number(p)<=0) return '-'; const m=Math.floor(p); const s=Math.round((p-m)*60); return `${m}:${String(s).padStart(2,'0')}`; }
+
+    function showPredictionChart() {
+        const targetType = document.getElementById('targetSelect').value;
+        const userSelect = document.getElementById("userSelect");
+        if (!userSelect.value) {
+            alert("Please select a user to display the prediction chart.");
+            return;
+        }
+        if (!predictionTableRows || predictionTableRows.length === 0) {
+            alert("No prediction data available.");
+            return;
+        }
+        if (typeof Chart === 'undefined') {
+            alert('Chart.js is not loaded yet. Please try again in a moment.');
+            return;
+        }
+        if (typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+            alert('Bootstrap JavaScript is not loaded, so the chart modal cannot open.');
+            return;
+        }
+        const isPace = targetType === 'target_next_week_pace';
+        const predictionField = isPace ? 'target_next_week_pace_prediction' : 'target_next_week_km_prediction';
+        const actualField = isPace ? 'avg_pace_min_per_km' : 'total_distance_km';
+        const chartTitle = isPace ? 'Weekly Running Pace' : 'Weekly Running Distance';
+        const yAxisTitle = isPace ? 'Pace (min/km)' : 'Distance (km)';
+
+        const chartRows = [...predictionTableRows].sort((a, b) => new Date(a.week_start) - new Date(b.week_start));
+        const labels = chartRows.map(r => r.week_start);
+        const actualData = chartRows.map(r => r[actualField]);
+        const predictedData = chartRows.map(r => r[predictionField]);
+        const ctx = document
+            .getElementById("predictionChart");
+        if (predictionChartInstance) {
+            predictionChartInstance.destroy();
+        }
+        predictionChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: isPace ? "Actual Pace (min/km)" : "Actual Distance (km)",
+                        data: actualData,
+                        tension: 0.3
+                    },
+                    {
+                        label: isPace ? "Predicted Pace (min/km)" : "Predicted Distance (km)",
+                        data: predictedData,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: chartTitle
+                    },
+                    zoom: {
+                        pan: {
+                            enabled: true,
+                            mode: 'x'
+                        },
+                        zoom: {
+                            wheel: {
+                                enabled: true
+                            },
+                            pinch: {
+                                enabled: true
+                            },
+                            drag: {
+                                enabled: true
+                            },
+                            mode: 'x'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        title: {
+                            display:true,
+                            text: yAxisTitle
+                        }
+                    },
+                    x: {
+                        title:{
+                            display:true,
+                            text:"Week"
+                        }
+                    }
+                }
+            }
+        });
+        const modal = new bootstrap.Modal(
+            document.getElementById("predictionChartModal")
+        );
+        modal.show();
+    }
+    function resetChartZoom() {
+        if (predictionChartInstance) {
+            predictionChartInstance.resetZoom();
+        }
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<div class="modal fade" id="predictionChartModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Actual vs Predicted Performance
+                </h5>
+                <button class="btn btn-outline-secondary btn-sm"
+                        onclick="resetChartZoom()">
+                    Reset Zoom
+                </button>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+            </div>
+            <div class="modal-body">
+                <canvas id="predictionChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
