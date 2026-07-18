@@ -64,10 +64,12 @@
 
                     <div id="statusBox" class="alert d-none mb-2" role="alert"></div>
 
-                    <button id="saveBtn" class="btn btn-success" onclick="saveWeeklySummary()">
+                    <button id="saveBtn" class="btn btn-success" onclick="saveWeeklySummary()"
+                        title="This will save all weekly summary records to the database. It may take a while depending on the number of users and activities.">
                         Save Training Data
                     </button>
-                    <button id="generateBtn" class="btn btn-success" onclick="generateDataset()">
+                    <button id="generateBtn" class="btn btn-success" onclick="generateDataset()"
+                        title="This will generate the training dataset CSV file and save to Downloads">
                         Generate Training Dataset
                     </button>
                     <div class="mt-3">
@@ -76,8 +78,15 @@
                             <option value="target_next_week_km" selected>target_next_week_km</option>
                             <option value="target_next_week_pace">target_next_week_pace</option>
                         </select>
+                        <label for="modelTypeSelect" class="form-label fw-semibold">Model type</label>
+                        <select id="modelTypeSelect" class="form-select">
+                            <option value="random_forest" selected>Random Forest</option>
+                            <option value="linear_regression">Linear Regression</option>
+                            <option value="gradient_boosting">Gradient Boosting</option>
+                        </select>
                     </div>
-                    <button id="trainBtn" class="btn btn-success" onclick="trainModel()">
+                    <button id="trainBtn" class="btn btn-success" onclick="trainModel()"
+                        title="This will train the machine learning model using the generated training dataset.">
                         Train Model
                     </button>
                 </div>
@@ -120,6 +129,9 @@
                 <div class="card-body p-4">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                         <h5 class="fw-bold mb-0"><i class="bi text-primary me-2"></i>Performance Predictions</h5>
+                        <button id="refreshBtn" class="btn btn-success" onclick="loadPredictionRows();clearStatus();">
+                            Refresh
+                        </button>
                         <button id="predictBtn" class="btn btn-success" onclick="predict()">
                             Predict
                         </button>
@@ -223,6 +235,12 @@
             });
     }
 
+    function clearStatus() {
+        const statusBox = document.getElementById('statusBox');
+        statusBox.className = 'alert d-none mb-2';
+        statusBox.textContent = '';
+    }
+
     function mergePredictionResults(predictions) {
         const predictionMap = new Map(
             (predictions || []).map(pred => [`${pred.user_id}|${pred.week_start}`, pred])
@@ -274,13 +292,14 @@
         const btn = document.getElementById('trainBtn');
         const statusBox = document.getElementById('statusBox');
         const target = document.getElementById('targetSelect').value || 'target_next_week_km';
+        const modelType = document.getElementById('modelTypeSelect').value || 'random_forest';
 
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Training…';
         statusBox.className = 'alert alert-info d-block';
         statusBox.textContent = 'Training the model on the Python server. This may take a while…';
 
-        const response = await fetch(`${PY_TRAINING_BASE}/train?target=${encodeURIComponent(target)}`, {
+        const response = await fetch(`${PY_TRAINING_BASE}/train?target=${encodeURIComponent(target)}&model_type=${encodeURIComponent(modelType)}`, {
             method: "POST",
             headers: {
                 'Content-Type': 'application/json'
@@ -310,13 +329,14 @@
         const btn = document.getElementById('predictBtn');
         const statusBox = document.getElementById('statusBox');
         const target = document.getElementById('targetSelect').value || 'target_next_week_km';
+        const modelType = document.getElementById('modelTypeSelect').value || 'random_forest';
 
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Predicting…';
         statusBox.className = 'alert alert-info d-block';
         statusBox.textContent = 'Generating prediction dataset and calling the ML server…';
 
-        fetch(`${API_BASE}/performance/predict?target=${encodeURIComponent(target)}`)
+        fetch(`${API_BASE}/performance/predict?target=${encodeURIComponent(target)}&model_type=${encodeURIComponent(modelType)}`)
             .then(async r => {
                 const payload = await r.json().catch(() => null);
                 if (!r.ok) {

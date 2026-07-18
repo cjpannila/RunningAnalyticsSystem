@@ -20,4 +20,8 @@ public class Constants {
     public static final String PREDICTION_DATASET_FILE_NAME = "prediction_dataset.csv";
 
     public static final int PREDICTION_DATAROWS_PER_USER = 5;
+
+    public static final String DOWNLOADS = "Downloads";
+
+    public static final String RANDOM_FOREST = "random_forest";
 }

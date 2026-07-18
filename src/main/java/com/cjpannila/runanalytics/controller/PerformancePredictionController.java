@@ -26,6 +26,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
 
+import static com.cjpannila.runanalytics.util.Constants.DOWNLOADS;
+
 @RestController
 @RequestMapping("/api/performance")
 @RequiredArgsConstructor
@@ -41,7 +43,7 @@ public class PerformancePredictionController {
     public ResponseEntity<String> generateTrainingDataset() {
         try {
             logger.info("Training dataset export requested");
-            var result = featureEngineeringService.generateTrainingDatasetCsv();
+            TrainingDatasetExportResultDto result = featureEngineeringService.generateTrainingDatasetCsv();
 
             byte[] csvBytes = result.getCsvBytes();
             if (csvBytes == null || csvBytes.length == 0) {
@@ -88,16 +90,18 @@ public class PerformancePredictionController {
     }
 
     @GetMapping(value = "/prediction-rows", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<PredictionTableRowDto>> getPredictionRows() {
-        return ResponseEntity.ok(featureEngineeringService.buildPredictionRows());
+    public ResponseEntity<List<PredictionTableRowDto>> getPredictionRows(@RequestParam(defaultValue = "true") boolean limit) {
+        return ResponseEntity.ok(featureEngineeringService.buildPredictionRows(limit));
     }
 
     @GetMapping(value = "/predict", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PredictionResponseDto> predict(@RequestParam(defaultValue = "target_next_week_km") String target) {
+    public ResponseEntity<PredictionResponseDto> predict(@RequestParam(defaultValue = "target_next_week_km") String target,
+                                                         @RequestParam(defaultValue = "true") boolean limit,
+                                                         @RequestParam(name = "model_type", defaultValue = Constants.RANDOM_FOREST) String modelType) {
         try {
             logger.info("Prediction requested for target={}", target);
 
-            TrainingDatasetExportResultDto datasetResult = featureEngineeringService.savePredictionDataset();
+            TrainingDatasetExportResultDto datasetResult = featureEngineeringService.savePredictionDataset(limit);
             if (datasetResult.getCsvBytes() == null || datasetResult.getCsvBytes().length == 0) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(PredictionResponseDto.builder()
@@ -107,7 +111,7 @@ public class PerformancePredictionController {
             }
 
             ResponseEntity<List<Map<String, Object>>> pythonResponse = restTemplate.exchange(
-                    PY_TRAINING_BASE + "/predict?target=" + target,
+                    PY_TRAINING_BASE + "/predict?target=" + target + "&model_type=" + modelType,
                     org.springframework.http.HttpMethod.POST,
                     null,
                     new ParameterizedTypeReference<List<Map<String, Object>>>() {}
@@ -134,7 +138,7 @@ public class PerformancePredictionController {
 
     private Path resolveDownloadsFile(String fileName) {
         Path homeDir = Paths.get(System.getProperty("user.home"));
-        Path downloadsDir = homeDir.resolve("Downloads");
+        Path downloadsDir = homeDir.resolve(DOWNLOADS);
         Path targetDir = Files.exists(downloadsDir) ? downloadsDir : homeDir;
         return targetDir.resolve(fileName);
     }
@@ -145,7 +149,7 @@ public class PerformancePredictionController {
 
     private Path resolveTrainingDatasetOutputFile() {
         Path homeDir = Paths.get(System.getProperty("user.home"));
-        Path downloadsDir = homeDir.resolve("Downloads");
+        Path downloadsDir = homeDir.resolve(DOWNLOADS);
         Path targetDir = Files.exists(downloadsDir) ? downloadsDir : homeDir;
         return targetDir.resolve(Constants.TRAINING_DATASET_FILE_NAME);
     }

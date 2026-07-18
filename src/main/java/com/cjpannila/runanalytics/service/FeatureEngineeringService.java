@@ -49,7 +49,7 @@ public class FeatureEngineeringService {
             "total_running_time_s,avg_cadence,avg_hr,longest_run_km,training_load," +
             "target_next_week_pace,target_next_week_km";
 
-    public List<PredictionTableRowDto> buildPredictionRows() {
+    public List<PredictionTableRowDto> buildPredictionRows(boolean limit) {
         List<User> users = new ArrayList<>();
         userRepository.findAll().forEach(users::add);
         List<PredictionTableRowDto> rows = new ArrayList<>();
@@ -63,8 +63,11 @@ public class FeatureEngineeringService {
             if (summaries.isEmpty()) {
                 continue;
             }
-            int limit = Math.min(Constants.PREDICTION_DATAROWS_PER_USER, summaries.size());
-            for (int i = 0; i < limit; i++) {
+            int rowLimit = summaries.size();
+            if (limit) {
+                rowLimit = Math.min(Constants.PREDICTION_DATAROWS_PER_USER, summaries.size());
+            }
+            for (int i = 0; i < rowLimit; i++) {
                 WeeklySummary summary = summaries.get(i);
                 rows.add(PredictionTableRowDto.builder()
                         .userId(uid)
@@ -86,8 +89,9 @@ public class FeatureEngineeringService {
         return rows;
     }
 
-    public TrainingDatasetExportResultDto savePredictionDataset() {
-        List<PredictionTableRowDto> rows = buildPredictionRows();
+    // Save prediction_dataset.csv to downloads folder
+    public TrainingDatasetExportResultDto savePredictionDataset(boolean limit) {
+        List<PredictionTableRowDto> rows = buildPredictionRows(limit);
         TrainingDatasetExportResultDto result = new TrainingDatasetExportResultDto();
         result.setRowsGenerated(rows.size());
         result.setActivitiesUsed(rows.size());
@@ -180,7 +184,7 @@ public class FeatureEngineeringService {
                 double targetNextWeekKm = analyticsService.calculateTargetDistanceNextWeek(uid, weekStart);
 
                 //Skip weeks with no runs for this user
-                if (runCount > 0 && targetNextWeekPace > 0) {
+                if (runCount > 0) {
                     if (isZeroOrNull(avgCadence)) {
                         avgCadence = analyticsService.calculateAllTimeAverageCadence(uid);
                     }
@@ -271,7 +275,9 @@ public class FeatureEngineeringService {
 
                 Optional<WeeklySummary> weeklySummaryOptional =
                         weeklySummaryRepository.findByUserAndWeekStart(user, weekStart);
-                if (weeklySummaryOptional.isPresent()) {
+                //Remove the last row in the weekly_summary table with no target next week distance
+                if (weeklySummaryOptional.isPresent()
+                    && weeklySummaryOptional.get().getTargetNextWeekKm() > 0) {
                     WeeklySummary weeklySummary = weeklySummaryOptional.get();
                     sb.append(weekStart).append(",")
                             .append(uid).append(",")
