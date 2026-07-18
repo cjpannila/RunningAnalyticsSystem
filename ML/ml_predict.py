@@ -51,8 +51,10 @@ def prepare_features(df, features):
 def load_evaluation_results(target, model_type):
     model_type = validate_model_type(model_type)
 
-    print("Generating Predictions...")
+    print("Evaluating Predictions...")
     # Load the trained model
     saved = joblib.load(Path(MODELS) / f"{model_type}_{target}.pkl")
     metrics = saved["metrics"]
+    metrics["target"] = target
+    print(metrics)
     return metrics
