@@ -98,7 +98,7 @@ public class PerformancePredictionController {
 
     @GetMapping(value = "/prediction-rows", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<PredictionTableRowDto>> getPredictionRows(@RequestParam(defaultValue = "true") boolean limit) {
-        return ResponseEntity.ok(featureEngineeringService.buildPredictionRows(limit));
+        return ResponseEntity.ok(featureEngineeringService.buildPredictionRows(limit, false));
     }
 
     @GetMapping(value = "/predict", produces = MediaType.APPLICATION_JSON_VALUE)

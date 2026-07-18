@@ -575,9 +575,10 @@
         const chartTitle = isPace ? 'Weekly Running Pace' : 'Weekly Running Distance';
         const yAxisTitle = isPace ? 'Pace (min/km)' : 'Distance (km)';
 
-        const labels = predictionTableRows.map(r => r.week_start);
-        const actualData = predictionTableRows.map(r => r[actualField]);
-        const predictedData = predictionTableRows.map(r => r[predictionField]);
+        const chartRows = [...predictionTableRows].sort((a, b) => new Date(a.week_start) - new Date(b.week_start));
+        const labels = chartRows.map(r => r.week_start);
+        const actualData = chartRows.map(r => r[actualField]);
+        const predictedData = chartRows.map(r => r[predictionField]);
         const ctx = document
             .getElementById("predictionChart");
         if (predictionChartInstance) {

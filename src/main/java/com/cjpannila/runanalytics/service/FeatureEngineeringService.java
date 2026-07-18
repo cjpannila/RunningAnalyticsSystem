@@ -49,7 +49,7 @@ public class FeatureEngineeringService {
             "total_running_time_s,avg_cadence,avg_hr,longest_run_km,training_load," +
             "target_next_week_pace,target_next_week_km";
 
-    public List<PredictionTableRowDto> buildPredictionRows(boolean limit) {
+    public List<PredictionTableRowDto> buildPredictionRows(boolean limit, boolean forCSV) {
         List<User> users = new ArrayList<>();
         userRepository.findAll().forEach(users::add);
         List<PredictionTableRowDto> rows = new ArrayList<>();
@@ -66,6 +66,7 @@ public class FeatureEngineeringService {
             int rowLimit = summaries.size();
             if (limit) {
                 rowLimit = Math.min(Constants.PREDICTION_DATAROWS_PER_USER, summaries.size());
+                rowLimit = forCSV ? rowLimit + 1 : rowLimit;
             }
             for (int i = 0; i < rowLimit; i++) {
                 WeeklySummary summary = summaries.get(i);
@@ -91,7 +92,7 @@ public class FeatureEngineeringService {
 
     // Save prediction_dataset.csv to downloads folder
     public TrainingDatasetExportResultDto savePredictionDataset(boolean limit) {
-        List<PredictionTableRowDto> rows = buildPredictionRows(limit);
+        List<PredictionTableRowDto> rows = buildPredictionRows(limit, true);
         TrainingDatasetExportResultDto result = new TrainingDatasetExportResultDto();
         result.setRowsGenerated(rows.size());
         result.setActivitiesUsed(rows.size());
