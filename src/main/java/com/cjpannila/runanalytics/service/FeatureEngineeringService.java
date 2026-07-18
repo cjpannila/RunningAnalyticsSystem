@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -85,6 +86,14 @@ public class FeatureEngineeringService {
                         .targetNextWeekPace(toDouble(summary.getTargetNextWeekPace()))
                         .targetNextWeekKm(toDouble(summary.getTargetNextWeekKm()))
                         .build());
+            }
+            //if loading for the UI table include the future record
+            if (!rows.isEmpty() && !forCSV) {
+                PredictionTableRowDto futureRecord = new PredictionTableRowDto();
+                futureRecord.setUserId(uid);
+                futureRecord.setWeekStart(rows.getFirst().getWeekStart().plusWeeks(1));
+                //Add the future record to the beginning of the list
+                rows.addFirst(futureRecord);
             }
         }
         return rows;
