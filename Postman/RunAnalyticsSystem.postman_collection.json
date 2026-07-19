@@ -1,0 +1,602 @@
+{
+  "info": {
+    "_postman_id": "02b35c2b-5ce7-46e6-8751-217e59c1bcbf",
+    "name": "RunAnalyticsSystem",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "6809902"
+  },
+  "item": [
+    {
+      "name": "Token",
+      "item": [
+        {
+          "name": "oauth/token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "https://www.strava.com/oauth/token?client_id=218954&client_secret=8981abcaf7daa38a57e6ee8b041540d4029aab0b&code=4a92dae2a9ecead743d7757aa262fbf04e66cbbf&grant_type=authorization_code",
+              "protocol": "https",
+              "host": [
+                "www",
+                "strava",
+                "com"
+              ],
+              "path": [
+                "oauth",
+                "token"
+              ],
+              "query": [
+                {
+                  "key": "client_id",
+                  "value": "218954"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "8981abcaf7daa38a57e6ee8b041540d4029aab0b"
+                },
+                {
+                  "key": "code",
+                  "value": "4a92dae2a9ecead743d7757aa262fbf04e66cbbf"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "authorization_code"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "oauth/token - refreshToken",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "https://www.strava.com/oauth/token?client_id=218954&client_secret=8981abcaf7daa38a57e6ee8b041540d4029aab0b&code=4a92dae2a9ecead743d7757aa262fbf04e66cbbf&grant_type=authorization_code",
+              "protocol": "https",
+              "host": [
+                "www",
+                "strava",
+                "com"
+              ],
+              "path": [
+                "oauth",
+                "token"
+              ],
+              "query": [
+                {
+                  "key": "client_id",
+                  "value": "218954"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "8981abcaf7daa38a57e6ee8b041540d4029aab0b"
+                },
+                {
+                  "key": "code",
+                  "value": "4a92dae2a9ecead743d7757aa262fbf04e66cbbf"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "authorization_code"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Monitoring",
+      "item": [
+        {
+          "name": "athlete",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "e6953855b05379fcc4e2c2f407977abfc37d971e",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://www.strava.com/api/v3/athlete",
+              "protocol": "https",
+              "host": [
+                "www",
+                "strava",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v3",
+                "athlete"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "athletes/{id}/stats",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "657f7d882bafa9269dea526b25e39eb4d57f8515",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://www.strava.com/api/v3/athletes/23177662/stats",
+              "protocol": "https",
+              "host": [
+                "www",
+                "strava",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v3",
+                "athletes",
+                "23177662",
+                "stats"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "athlete/clubs",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "e6953855b05379fcc4e2c2f407977abfc37d971e",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://www.strava.com/api/v3/athlete/clubs",
+              "protocol": "https",
+              "host": [
+                "www",
+                "strava",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v3",
+                "athlete",
+                "clubs"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "clubs/{id}/members",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "657f7d882bafa9269dea526b25e39eb4d57f8515",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://www.strava.com/api/v3/clubs/1125700/members",
+              "protocol": "https",
+              "host": [
+                "www",
+                "strava",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v3",
+                "clubs",
+                "1125700",
+                "members"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "3",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "athlete/activities",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "ab54190f9580efd0f92e5a81ac7ce73b77a279ba",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://www.strava.com/api/v3/athlete/activities",
+              "protocol": "https",
+              "host": [
+                "www",
+                "strava",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v3",
+                "athlete",
+                "activities"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "10",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ApiInfo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/runanalytics/api/apiinfo",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "runanalytics",
+                "api",
+                "apiinfo"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "runanalytics/api/authenticate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/runanalytics/api/authenticate?code=c72ac8320bac5a43e3fd5a778fc5b64a5944d47d",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "runanalytics",
+                "api",
+                "authenticate"
+              ],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "c72ac8320bac5a43e3fd5a778fc5b64a5944d47d"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Predicting",
+      "item": [
+        {
+          "name": "ML/predict",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://127.0.0.1:8001/predict?target=target_next_week_km",
+              "protocol": "http",
+              "host": [
+                "127",
+                "0",
+                "0",
+                "1"
+              ],
+              "port": "8001",
+              "path": [
+                "predict"
+              ],
+              "query": [
+                {
+                  "key": "target",
+                  "value": "target_next_week_km"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ML/train",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://127.0.0.1:8001/train?target=target_next_week_pace&model_type=gradient_boosting",
+              "protocol": "http",
+              "host": [
+                "127",
+                "0",
+                "0",
+                "1"
+              ],
+              "port": "8001",
+              "path": [
+                "train"
+              ],
+              "query": [
+                {
+                  "key": "target",
+                  "value": "target_next_week_pace"
+                },
+                {
+                  "key": "model_type",
+                  "value": "gradient_boosting"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ML/evaluate",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://127.0.0.1:8001/evaluate?target=target_next_week_pace&model_type=gradient_boosting",
+              "protocol": "http",
+              "host": [
+                "127",
+                "0",
+                "0",
+                "1"
+              ],
+              "port": "8001",
+              "path": [
+                "evaluate"
+              ],
+              "query": [
+                {
+                  "key": "target",
+                  "value": "target_next_week_pace"
+                },
+                {
+                  "key": "model_type",
+                  "value": "gradient_boosting",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "RunAnalyticsOAuth",
+      "item": [
+        {
+          "name": "ApiInfo-OAuth",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/runanalytics-oauth/api/apiinfo",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "runanalytics-oauth",
+                "api",
+                "apiinfo"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ApiInfo-OAuth Render",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://runninganalyticsoauth.onrender.com/runanalytics-oauth/api/apiinfo",
+              "protocol": "https",
+              "host": [
+                "runninganalyticsoauth",
+                "onrender",
+                "com"
+              ],
+              "path": [
+                "runanalytics-oauth",
+                "api",
+                "apiinfo"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "OAuth authenticate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/runanalytics-oauth/api/authenticate?code=4a92dae2a9ecead743d7757aa262fbf04e66cbbf",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "runanalytics-oauth",
+                "api",
+                "authenticate"
+              ],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "4a92dae2a9ecead743d7757aa262fbf04e66cbbf"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "OAuth authenticate Render",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://runninganalyticsoauth.onrender.com/runanalytics-oauth/api/authenticate?code=4a92dae2a9ecead743d7757aa262fbf04e66cbbfX",
+              "protocol": "https",
+              "host": [
+                "runninganalyticsoauth",
+                "onrender",
+                "com"
+              ],
+              "path": [
+                "runanalytics-oauth",
+                "api",
+                "authenticate"
+              ],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "4a92dae2a9ecead743d7757aa262fbf04e66cbbfX"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "OAuth clear",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/runanalytics-oauth/api/authcodes/clear",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "runanalytics-oauth",
+                "api",
+                "authcodes",
+                "clear"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "OAuth clear Render",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://runninganalyticsoauth.onrender.com/runanalytics-oauth/api/authcodes/clear",
+              "protocol": "https",
+              "host": [
+                "runninganalyticsoauth",
+                "onrender",
+                "com"
+              ],
+              "path": [
+                "runanalytics-oauth",
+                "api",
+                "authcodes",
+                "clear"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "OAuth codes Render",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://runninganalyticsoauth.onrender.com/runanalytics-oauth/api/authcodes",
+              "protocol": "https",
+              "host": [
+                "runninganalyticsoauth",
+                "onrender",
+                "com"
+              ],
+              "path": [
+                "runanalytics-oauth",
+                "api",
+                "authcodes"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "auth_secret_0sqr",
+      "secret": true
+    }
+  ]
+}
