@@ -9,7 +9,7 @@ running activities, stores them in a database and provides meaningful
 insights into running performance for recreational running clubs.
 
 The application analyse historical running data and generate predictions 
-related to performance, training load and recovery. The objective is to 
+related to performance. The objective is to 
 support runners and coaches in making informed, data-driven training 
 decisions while reducing the risk of overtraining and injury.
 
@@ -18,6 +18,11 @@ https://www.strava.com/oauth/authorize?client_id=218954&response_type=code&redir
 
 Build with maven
 mvn clean install
+
+How to package
+mvn clean package
+run the application with the following command:
+java -jar target/runanalytics-0.0.1-SNAPSHOT.jar
 
 Run the application
 mvn spring-boot:run
