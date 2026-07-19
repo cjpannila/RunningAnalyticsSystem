@@ -9,7 +9,7 @@ running activities, stores them in a database and provides meaningful
 insights into running performance for recreational running clubs.
 
 The application analyse historical running data and generate predictions 
-related to performance, training load and recovery. The objective is to 
+related to performance. The objective is to 
 support runners and coaches in making informed, data-driven training 
 decisions while reducing the risk of overtraining and injury.
 
