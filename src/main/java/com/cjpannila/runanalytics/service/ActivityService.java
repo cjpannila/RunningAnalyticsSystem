@@ -62,6 +62,7 @@ public class ActivityService {
 
         boolean hasMore = true;
         int page = 1;
+        //Call Strava /athlete/activities api and fetch activities in a loop until no more activities are returned
         while (hasMore) {
             StringBuilder url = new StringBuilder(stravaApiUrl)
                     .append(Constants.API_ATHLETE_ACTIVITIES)
@@ -84,6 +85,7 @@ public class ActivityService {
             if (responseBody == null || responseBody.length == 0) {
                 hasMore = false;
             } else {
+                //Add all activities to the list and check if we need to fetch more pages in the next loop
                 stravaActivities.addAll(Arrays.asList(responseBody));
                 hasMore = responseBody.length == perPage;
                 page++;
@@ -100,10 +102,12 @@ public class ActivityService {
 
         List<Activity> savedActivities = new ArrayList<>();
         for (ActivityDto stravaActivity : stravaActivities) {
+            //If activity already present do nothing
             Optional<Activity> existing = activityRepository.findById(stravaActivity.getId());
             if (existing.isPresent()) {
                 continue;
             }
+            //No activity present save in activities table in DB
             Activity activity = new Activity();
             activity.setActivityId(stravaActivity.getId());
             activity.setUser(user);

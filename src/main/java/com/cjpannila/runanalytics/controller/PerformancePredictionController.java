@@ -47,10 +47,10 @@ public class PerformancePredictionController {
     private final RestTemplate restTemplate;
 
     @GetMapping(value = "/training-dataset", produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> generateTrainingDataset() {
+    public ResponseEntity<String> generateTrainingDataset(@RequestParam(required = false) Long userId) {
         try {
             logger.info("Training dataset export requested");
-            TrainingDatasetExportResultDto result = featureEngineeringService.generateTrainingDatasetCsv();
+            TrainingDatasetExportResultDto result = featureEngineeringService.generateTrainingDatasetCsv(userId);
 
             byte[] csvBytes = result.getCsvBytes();
             if (csvBytes == null || csvBytes.length == 0) {
@@ -84,7 +84,8 @@ public class PerformancePredictionController {
     public ResponseEntity<String> saveWeeklySummary() {
         try {
             logger.info("Weekly summary save requested");
-            TrainingDatasetExportResultDto result = featureEngineeringService.saveWeeklySummary();
+            //skip empty hr and cadence records - false
+            TrainingDatasetExportResultDto result = featureEngineeringService.saveWeeklySummary(false);
             if (result.getRowsGenerated() > 0) {
                 return ResponseEntity.ok("Saved weekly summary, "
                         + result.getRowsGenerated() + " records were saved");
