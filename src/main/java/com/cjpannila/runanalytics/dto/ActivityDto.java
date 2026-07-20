@@ -7,6 +7,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * This class represents the Strava activity data returned from the API
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

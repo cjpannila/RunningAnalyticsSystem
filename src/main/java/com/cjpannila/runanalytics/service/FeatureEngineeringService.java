@@ -58,16 +58,12 @@ public class FeatureEngineeringService {
 
         for (User user : users) {
             Long uid = user.getUserId();
-            if (uid == null) {
-                continue;
-            }
-            if (userId != null && !userId.equals(uid)) {
-                continue;
-            }
+            if (uid == null) continue;
+            if (userId != null && !userId.equals(uid)) continue;
+
             List<WeeklySummary> summaries = weeklySummaryRepository.findByUser_UserIdOrderByWeekStartDesc(uid);
-            if (summaries.isEmpty()) {
-                continue;
-            }
+            if (summaries.isEmpty()) continue;
+
             int rowLimit = summaries.size();
             if (limit) {
                 rowLimit = Math.min(Constants.PREDICTION_DATAROWS_PER_USER, summaries.size());
@@ -145,7 +141,11 @@ public class FeatureEngineeringService {
         }
     }
 
-    public TrainingDatasetExportResultDto saveWeeklySummary() {
+    /**
+     * Lopp through all users, all activity records, and generate weekly_summary records
+     * @return TrainingDatasetExportResultDto - without setting csvBytes
+     */
+    public TrainingDatasetExportResultDto saveWeeklySummary(boolean skipEmptyAvgHrAndCadence) {
         List<User> users = new ArrayList<>();
         userRepository.findAll().forEach(users::add);
         TrainingDatasetExportResultDto result = new TrainingDatasetExportResultDto();
@@ -184,29 +184,29 @@ public class FeatureEngineeringService {
                 Long uid = user.getUserId();
                 if (uid == null) continue;
                 Optional<WeeklySummary> existingSummary = weeklySummaryRepository.findByUserAndWeekStart(user, weekStart);
-                if (existingSummary.isPresent()) {
-                    continue;
-                }
+                if (existingSummary.isPresent()) continue;
                 int runCount = (int) analyticsService.calculateWeeklyRunCount(uid, weekStart);
 
                 //Skip weeks with no runs for this user
                 if (runCount > 0) {
                     double totalDistanceKm  = analyticsService.calculateWeeklyDistance(uid, weekStart);
-                    double avgPace = analyticsService.calculateAveragePace(uid, weekStart);
                     double avgHr = analyticsService.calculateAverageHeartRate(uid, weekStart);
+                    if (isZeroOrNull(avgHr)) {
+                        if (skipEmptyAvgHrAndCadence) continue;
+                        avgHr = analyticsService.calculateAllTimeAverageHeartRate(uid);
+                    }
                     double avgCadence = analyticsService.calculateAverageCadence(uid, weekStart);
+                    if (isZeroOrNull(avgCadence)) {
+                        if (skipEmptyAvgHrAndCadence) continue;
+                        avgCadence = analyticsService.calculateAllTimeAverageCadence(uid);
+                    }
+                    double avgPace = analyticsService.calculateAveragePace(uid, weekStart);
                     double trainingLoad = analyticsService.calculateTrainingLoad(uid, weekStart);
                     double longestRunKm = analyticsService.calculateLongestRun(uid, weekStart);
                     double elevation = analyticsService.calculateWeeklyElevation(uid, weekStart);
                     long movingTimeS = analyticsService.calculateTotalMovingTimeSeconds(uid, weekStart);
                     double targetNextWeekPace = analyticsService.calculateAveragePaceNextWeek(uid, weekStart);
                     double targetNextWeekKm = analyticsService.calculateTargetDistanceNextWeek(uid, weekStart);
-                    if (isZeroOrNull(avgCadence)) {
-                        avgCadence = analyticsService.calculateAllTimeAverageCadence(uid);
-                    }
-                    if (isZeroOrNull(avgHr)) {
-                        avgHr = analyticsService.calculateAllTimeAverageHeartRate(uid);
-                    }
                     if (isZeroOrNull(trainingLoad)) {
                         //Training Load > Sum of (Duration in minutes×Intensity Factor)
                         //Intensity Factor=Average Heart Rate/Max Heart Rate
@@ -244,9 +244,13 @@ public class FeatureEngineeringService {
     }
 
     //Generates a training dataset CSV covering ALL users across ALL weeks
-    public TrainingDatasetExportResultDto generateTrainingDatasetCsv() {
+    public TrainingDatasetExportResultDto generateTrainingDatasetCsv(Long userId) {
         List<User> users = new ArrayList<>();
-        userRepository.findAll().forEach(users::add);
+        if (userId != null) {
+            userRepository.findById(userId).ifPresent(users::add);
+        } else {
+            userRepository.findAll().forEach(users::add);
+        }
         TrainingDatasetExportResultDto result = new TrainingDatasetExportResultDto();
         result.setRowsGenerated(0);
         result.setActivitiesUsed(0);

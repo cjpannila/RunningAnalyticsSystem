@@ -566,6 +566,11 @@
     function generateDataset() {
         const btn = document.getElementById('generateBtn');
         const statusBox = document.getElementById('statusBox');
+        const userId = document.getElementById('userSelect').value;
+        let url = `${API_BASE}/performance/training-dataset`;
+        if (userId) {
+            url += `?userId=${encodeURIComponent(userId)}`;
+        }
 
         // Show loading state
         btn.disabled = true;
@@ -573,7 +578,7 @@
         statusBox.className = 'alert alert-info d-block';
         statusBox.textContent = 'Querying all user activities across all weeks. This may take a while…';
 
-        fetch(`${API_BASE}/performance/training-dataset`)
+        fetch(url)
             .then(async r => {
                 const message = await r.text();
                 if (!r.ok) throw new Error(message || `Server error: ${r.status}`);
