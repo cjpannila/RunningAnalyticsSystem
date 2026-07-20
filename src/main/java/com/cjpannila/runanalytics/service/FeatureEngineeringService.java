@@ -71,7 +71,9 @@ public class FeatureEngineeringService {
             int rowLimit = summaries.size();
             if (limit) {
                 rowLimit = Math.min(Constants.PREDICTION_DATAROWS_PER_USER, summaries.size());
-                rowLimit = forCSV ? rowLimit + 1 : rowLimit;
+                if (summaries.size() > rowLimit) {
+                    rowLimit = forCSV ? rowLimit + 1 : rowLimit;
+                }
             }
             for (int i = 0; i < rowLimit; i++) {
                 WeeklySummary summary = summaries.get(i);
