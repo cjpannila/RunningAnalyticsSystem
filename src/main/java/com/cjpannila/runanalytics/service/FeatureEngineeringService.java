@@ -187,20 +187,20 @@ public class FeatureEngineeringService {
                 if (existingSummary.isPresent()) {
                     continue;
                 }
-                double totalDistanceKm  = analyticsService.calculateWeeklyDistance(uid, weekStart);
-                double avgPace = analyticsService.calculateAveragePace(uid, weekStart);
-                double avgHr = analyticsService.calculateAverageHeartRate(uid, weekStart);
-                double avgCadence = analyticsService.calculateAverageCadence(uid, weekStart);
-                double trainingLoad = analyticsService.calculateTrainingLoad(uid, weekStart);
-                double longestRunKm = analyticsService.calculateLongestRun(uid, weekStart);
-                double elevation = analyticsService.calculateWeeklyElevation(uid, weekStart);
-                long movingTimeS = analyticsService.calculateTotalMovingTimeSeconds(uid, weekStart);
                 int runCount = (int) analyticsService.calculateWeeklyRunCount(uid, weekStart);
-                double targetNextWeekPace = analyticsService.calculateAveragePaceNextWeek(uid, weekStart);
-                double targetNextWeekKm = analyticsService.calculateTargetDistanceNextWeek(uid, weekStart);
 
                 //Skip weeks with no runs for this user
                 if (runCount > 0) {
+                    double totalDistanceKm  = analyticsService.calculateWeeklyDistance(uid, weekStart);
+                    double avgPace = analyticsService.calculateAveragePace(uid, weekStart);
+                    double avgHr = analyticsService.calculateAverageHeartRate(uid, weekStart);
+                    double avgCadence = analyticsService.calculateAverageCadence(uid, weekStart);
+                    double trainingLoad = analyticsService.calculateTrainingLoad(uid, weekStart);
+                    double longestRunKm = analyticsService.calculateLongestRun(uid, weekStart);
+                    double elevation = analyticsService.calculateWeeklyElevation(uid, weekStart);
+                    long movingTimeS = analyticsService.calculateTotalMovingTimeSeconds(uid, weekStart);
+                    double targetNextWeekPace = analyticsService.calculateAveragePaceNextWeek(uid, weekStart);
+                    double targetNextWeekKm = analyticsService.calculateTargetDistanceNextWeek(uid, weekStart);
                     if (isZeroOrNull(avgCadence)) {
                         avgCadence = analyticsService.calculateAllTimeAverageCadence(uid);
                     }
