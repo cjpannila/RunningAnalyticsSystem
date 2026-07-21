@@ -115,6 +115,10 @@
             color: #555;
             margin: 0 5px;
         }
+        .bg-ash {
+            background-color: #e5e5e5;
+            color: #000;
+        }
     </style>
 </head>
 <body>
@@ -167,6 +171,7 @@
                     <th>City</th>
                     <th>Country</th>
                     <th>Total Runs</th>
+                    <th>Runs with All Data</th>
                     <th>Action</th>
                     <th>Activities</th>
                     <th>Clubs</th>
@@ -176,6 +181,13 @@
             <tbody id="usersTableBody">
             </tbody>
         </table>
+    </div>
+
+    <div class="table-container mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <label id="lblTotalRuns" class="badge bg-ash text-dark fs-6 px-3 py-2"></label>
+            <label id="lblTotalRunsWithAllData" class="badge bg-ash text-dark fs-6 px-3 py-2"></label>
+        </div>
     </div>
 </div>
 
@@ -234,12 +246,17 @@
         tbody.innerHTML = '';
 
         if (users.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No users found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No users found</td></tr>';
             return;
         }
 
+        let totalRuns = 0;
+        let totalRunsWithAllData = 0;
+
         users.forEach(user => {
             const row = document.createElement('tr');
+            totalRuns += user.totalRuns || 0;
+            totalRunsWithAllData += user.totalRunsWithAllData || 0;
             row.innerHTML = `
                 <td>${user.userId}</td>
                 <td>${user.firstname || '-'}</td>
@@ -247,6 +264,7 @@
                 <td>${user.city || '-'}</td>
                 <td>${user.country || '-'}</td>
                 <td>${user.totalRuns || '-'}</td>
+                <td>${user.totalRunsWithAllData || '-'}</td>
                 <td>
                     <button class="btn btn-sm btn-get-token me-2"
                     onclick="getAccessToken('${user.userId}', '${user.firstname} ${user.lastname}')"
@@ -275,6 +293,8 @@
             `;
             tbody.appendChild(row);
         });
+        document.getElementById('lblTotalRuns').textContent = `Total runs with distance and time data: ${totalRuns}`;
+        document.getElementById('lblTotalRunsWithAllData').textContent = `Total runs with heart rate, cadence and elevation data: ${totalRunsWithAllData}`;
     }
 
     function getAccessToken(userId, userName) {
