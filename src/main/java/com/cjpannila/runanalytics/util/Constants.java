@@ -1,5 +1,8 @@
 package com.cjpannila.runanalytics.util;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Constants {
     private Constants() {
     }
@@ -24,4 +27,6 @@ public class Constants {
     public static final String DOWNLOADS = "Downloads";
 
     public static final String RANDOM_FOREST = "random_forest";
+
+    public static final List<Long> USER_IDS_TO_FILTER = new ArrayList<>(List.of(7016611L));
 }

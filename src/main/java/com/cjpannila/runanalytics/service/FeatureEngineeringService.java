@@ -250,7 +250,12 @@ public class FeatureEngineeringService {
         if (userId != null) {
             userRepository.findById(userId).ifPresent(users::add);
         } else {
-            userRepository.findAll().forEach(users::add);
+            //Add all users filtered by the config list
+            userRepository.findAll().forEach(user -> {
+                if (!Constants.USER_IDS_TO_FILTER.contains(user.getUserId())) {
+                    users.add(user);
+                }
+            });
         }
         TrainingDatasetExportResultDto result = new TrainingDatasetExportResultDto();
         result.setRowsGenerated(0);
