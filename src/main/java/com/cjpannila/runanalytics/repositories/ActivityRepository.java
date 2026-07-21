@@ -91,5 +91,17 @@ public interface ActivityRepository extends CrudRepository<Activity, Long> {
 
     @Query("SELECT MAX(a.startTime) FROM Activity a WHERE a.user.userId IN :userIds AND a.activityType = 'Run'")
     LocalDateTime findMaxStartTimeForUsers(@Param("userIds") java.util.List<Long> userIds);
+
+    @Query("""
+            SELECT (COUNT(*))
+            FROM Activity a
+            WHERE a.user.userId = :userId
+            AND a.activityType = 'Run'
+            AND a.elevationGainM IS NOT NULL
+            AND a.elevationGainM > 0
+            AND a.distanceM IS NOT NULL
+            AND a.distanceM > 0
+            """)
+    Integer getRunCountByUser(@Param("userId") Long userId);
 }
 
