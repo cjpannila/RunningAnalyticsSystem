@@ -2,6 +2,7 @@ package com.cjpannila.runanalytics.controller;
 
 import com.cjpannila.runanalytics.entities.Activity;
 import com.cjpannila.runanalytics.service.ActivityService;
+import com.cjpannila.runanalytics.service.ClubService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -21,16 +22,26 @@ public class ActivityController {
     private final Logger logger = LoggerFactory.getLogger(ActivityController.class);
 
     private final ActivityService activityService;
+    private final ClubService clubService;
 
-    public ActivityController(ActivityService activityService) {
+    public ActivityController(ActivityService activityService, ClubService clubService) {
         this.activityService = activityService;
+        this.clubService = clubService;
     }
 
+    /**
+     * Fetch all activities from Strava API for the given user and save them to the database.
+     * Also save clubs for user
+     * @param userId
+     * @return
+     */
     @PostMapping("/activities/sync")
     public ResponseEntity<Object> fetchAndSaveActivities(@RequestParam Long userId) {
         logger.info("Fetching activities for user: {}", userId);
         try {
             List<Activity> savedActivities = activityService.fetchAndSaveActivities(userId);
+            //Save clubs for user too at the same time
+            clubService.callClubsApiAndSavetoDB(userId);
             logger.info("Successfully fetched and saved activities for user: {}", userId);
             return ResponseEntity.ok(Map.of(
                     "message", "Activities fetched and saved successfully",

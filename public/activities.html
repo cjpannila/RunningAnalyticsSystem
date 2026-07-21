@@ -215,7 +215,6 @@
                         data-bs-toggle="tooltip"
                         data-bs-placement="top"
                         title="Click to retrieve activities from Strava, save them to the database, and refresh the activity list.">
-                    <i class="bi bi-cloud-download me-1"></i> Sync Activities
                 </button>
                 <button class="btn btn-outline-secondary" onclick="loadSavedActivities()">
                     <i class="bi bi-arrow-clockwise me-1"></i> Refresh
@@ -309,6 +308,7 @@
     let sortState = { key: 'startTime', direction: 'desc' };
 
     document.addEventListener('DOMContentLoaded', () => {
+        enableSyncActivitiesButton();
         document.getElementById('pageSizeSelect').value = String(pageSize);
         if (userId) {
             loadSavedActivities();
@@ -321,6 +321,25 @@
         return userId;
     }
 
+    function disableSyncActivitiesButton() {
+        const syncBtn = document.getElementById('syncBtn');
+        // Disable button and show loading state
+        syncBtn.disabled = true;
+        syncBtn.innerHTML = `
+        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            Syncing...
+        `;
+    }
+
+    function enableSyncActivitiesButton() {
+        const syncBtn = document.getElementById('syncBtn');
+        // Enable button and restore original text
+        syncBtn.disabled = false;
+        syncBtn.innerHTML = `
+                <i class="bi bi-cloud-download me-1"></i> Sync Activities
+            `;
+    }
+
     function syncActivities() {
         const userId = getUserId();
         if (!userId) {
@@ -328,6 +347,7 @@
             return;
         }
 
+        disableSyncActivitiesButton();
         showLoading(true);
         hideAlerts();
 
@@ -343,6 +363,10 @@
             .catch(error => {
                 console.error('Error:', error);
                 showError('Failed to sync activities: ' + error.message);
+                showLoading(false);
+            })
+            .finally(() => {
+                enableSyncActivitiesButton();
                 showLoading(false);
             });
     }

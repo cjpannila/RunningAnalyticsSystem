@@ -49,6 +49,37 @@
           "response": []
         },
         {
+          "name": "deauthorize",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "https://www.strava.com/oauth/deauthorize",
+              "protocol": "https",
+              "host": [
+                "www",
+                "strava",
+                "com"
+              ],
+              "path": [
+                "oauth",
+                "deauthorize"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "oauth/token - refreshToken",
           "request": {
             "method": "POST",
@@ -518,73 +549,6 @@
                   "key": "code",
                   "value": "4a92dae2a9ecead743d7757aa262fbf04e66cbbfX"
                 }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "OAuth clear",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8080/runanalytics-oauth/api/authcodes/clear",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8080",
-              "path": [
-                "runanalytics-oauth",
-                "api",
-                "authcodes",
-                "clear"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "OAuth clear Render",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "https://runninganalyticsoauth.onrender.com/runanalytics-oauth/api/authcodes/clear",
-              "protocol": "https",
-              "host": [
-                "runninganalyticsoauth",
-                "onrender",
-                "com"
-              ],
-              "path": [
-                "runanalytics-oauth",
-                "api",
-                "authcodes",
-                "clear"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "OAuth codes Render",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "https://runninganalyticsoauth.onrender.com/runanalytics-oauth/api/authcodes",
-              "protocol": "https",
-              "host": [
-                "runninganalyticsoauth",
-                "onrender",
-                "com"
-              ],
-              "path": [
-                "runanalytics-oauth",
-                "api",
-                "authcodes"
               ]
             }
           },

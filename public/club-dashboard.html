@@ -238,6 +238,7 @@
 
 <script>
     const API_BASE = "/runanalytics/api";
+    const LEADERBOARD_LIMIT = 10;
 
     const queryParams = new URLSearchParams(window.location.search);
     const userId = queryParams.get("userId");
@@ -362,6 +363,7 @@
             tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No run data for this metric</td></tr>';
             return;
         }
+        sortedMembers = sortedMembers.slice(0, LEADERBOARD_LIMIT);
 
         tbody.innerHTML = sortedMembers.map((member, index) => `
             <tr>

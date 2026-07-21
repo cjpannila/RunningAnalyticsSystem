@@ -33,6 +33,12 @@ public class ClubLeaderboardService {
         this.userClubRepository = userClubRepository;
     }
 
+    /**
+     * This is used to get data for club leaderboards for a specific week.
+     * @param clubId The ID of the club
+     * @param weekStart The start date of the week
+     * @return ClubWeeklyStatsResponseDto with List<ClubMemberWeeklyStatsDto> members
+     */
     public ClubWeeklyStatsResponseDto getWeeklyStats(Long clubId, LocalDate weekStart) {
         Club club = clubRepository.findById(clubId)
                 .orElseThrow(() -> new RuntimeException("Club not found"));
@@ -48,7 +54,6 @@ public class ClubLeaderboardService {
             if (user == null || user.getUserId() == null) {
                 continue;
             }
-
             Long userId = user.getUserId();
             statsByUser.put(userId, new AggregateStats(userId, buildRunnerName(user)));
         }

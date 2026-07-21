@@ -106,7 +106,7 @@
                         Each row represents one week for one user.
                     </p>
                     <h5 class="fw-bold mb-3"><i class="bi text-primary me-2"></i>Generated Features</h5>
-                    <div class="d-flex flex-wrap gap-2">
+                    <div class="d-flex flex-wrap gap-2 me-3">
                         <span class="column-badge">week_start</span>
                         <span class="column-badge">run_count</span>
                         <span class="column-badge">total_distance_km</span>
@@ -120,15 +120,21 @@
                         <span class="column-badge">target_next_week_pace</span>
                         <span class="column-badge">target_next_week_km</span>
                     </div>
-                    <div id="datasetSummary" class="small text-muted">
+                    <div id="datasetSummary" class="medium text-muted mt-3">
                         <div><strong>Rows generated:</strong> <span id="rowsGeneratedValue">-</span></div>
                         <div><strong>Activities used:</strong> <span id="activitiesUsedValue">-</span></div>
                     </div>
                     <hr class="my-3">
-                    <label for="userSelect" class="form-label fw-semibold">User</label>
-                    <select id="userSelect" class="form-select mb-3" onchange="reloadAndPredict()">
-                        <option value="">All users</option>
-                    </select>
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <label for="userSelect" class="form-label fw-semibold">User</label>
+                        <select id="userSelect" class="form-select mb-3" onchange="reloadAndPredict()">
+                            <option value="">All users</option>
+                        </select>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <label for="toDateSelect" class="form-label fw-semibold">Filter training up to Date</label>
+                        <input type="date" id="toDateSelect" class="form-control mb-3">
+                    </div>
                 </div>
             </div>
         </div>
@@ -567,9 +573,17 @@
         const btn = document.getElementById('generateBtn');
         const statusBox = document.getElementById('statusBox');
         const userId = document.getElementById('userSelect').value;
+        const toDate = document.getElementById('toDateSelect').value;
         let url = `${API_BASE}/performance/training-dataset`;
-        if (userId) {
-            url += `?userId=${encodeURIComponent(userId)}`;
+        if (userId || toDate) {
+            url += '?';
+            if (userId) {
+                url += `userId=${encodeURIComponent(userId)}`;
+            }
+            if (toDate) {
+                if (userId) url += '&';
+                url += `toDate=${encodeURIComponent(toDate)}`;
+            }
         }
 
         // Show loading state

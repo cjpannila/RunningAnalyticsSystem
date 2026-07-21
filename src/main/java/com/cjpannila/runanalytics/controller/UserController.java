@@ -3,6 +3,7 @@ package com.cjpannila.runanalytics.controller;
 import com.cjpannila.runanalytics.repositories.ActivityRepository;
 import com.cjpannila.runanalytics.service.UserService;
 import com.cjpannila.runanalytics.service.AnalyticsService;
+import com.cjpannila.runanalytics.dto.UserDto;
 import com.cjpannila.runanalytics.dto.UserWeeklyStatsDto;
 import com.cjpannila.runanalytics.dto.StravaTokenRequest;
 import com.cjpannila.runanalytics.dto.StravaTokenResponse;
@@ -223,9 +224,20 @@ public class UserController {
     }
 
     @GetMapping(value = "/users")
-    public List<User> users() {
+    public List<UserDto> users() {
         logger.info("Getting all users");
-        return userService.getUsers();
+        List<User> users = userService.getUsers();
+        return users.stream()
+                .map(user -> UserDto.builder()
+                        .userId(user.getUserId())
+                        .firstname(user.getFirstname())
+                        .lastname(user.getLastname())
+                        .city(user.getCity())
+                        .country(user.getCountry())
+                        .sex(user.getSex())
+                        .totalRuns(activityRepository.getRunCountByUser(user.getUserId()))
+                        .build())
+                .collect(Collectors.toList());
     }
 
     @GetMapping(value = "/user")
