@@ -236,6 +236,7 @@ public class UserController {
                         .country(user.getCountry())
                         .sex(user.getSex())
                         .totalRuns(activityRepository.getRunCountByUser(user.getUserId()))
+                        .totalRunsWithAllData(activityRepository.getRunCountWithAllDataByUser(user.getUserId()))
                         .build())
                 .collect(Collectors.toList());
     }

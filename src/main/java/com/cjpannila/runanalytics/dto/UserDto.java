@@ -17,4 +17,5 @@ public class UserDto {
     private String country;
     private String sex;
     private int totalRuns;
+    private int totalRunsWithAllData;
 }
