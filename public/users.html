@@ -166,7 +166,7 @@
                     <th>Last Name</th>
                     <th>City</th>
                     <th>Country</th>
-                    <th>Sex</th>
+                    <th>Total Runs</th>
                     <th>Action</th>
                     <th>Activities</th>
                     <th>Clubs</th>
@@ -246,7 +246,7 @@
                 <td>${user.lastname || '-'}</td>
                 <td>${user.city || '-'}</td>
                 <td>${user.country || '-'}</td>
-                <td>${user.sex || '-'}</td>
+                <td>${user.totalRuns || '-'}</td>
                 <td>
                     <button class="btn btn-sm btn-get-token me-2"
                     onclick="getAccessToken('${user.userId}', '${user.firstname} ${user.lastname}')"
