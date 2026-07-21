@@ -2,36 +2,24 @@ package com.cjpannila.runanalytics.controller;
 
 import com.cjpannila.runanalytics.dto.ClubWeeklyStatsResponseDto;
 import com.cjpannila.runanalytics.dto.UserClubDto;
-import com.cjpannila.runanalytics.dto.StravaClubDto;
 import com.cjpannila.runanalytics.entities.Club;
-import com.cjpannila.runanalytics.entities.User;
 import com.cjpannila.runanalytics.entities.UserClub;
-import com.cjpannila.runanalytics.repositories.ClubRepository;
 import com.cjpannila.runanalytics.repositories.UserClubRepository;
 import com.cjpannila.runanalytics.dto.ClubMemberDto;
 import com.cjpannila.runanalytics.service.ClubLeaderboardService;
-import com.cjpannila.runanalytics.service.UserService;
-import com.cjpannila.runanalytics.repositories.UserRepository;
+import com.cjpannila.runanalytics.service.ClubService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
-
-import static com.cjpannila.runanalytics.util.Constants.API_ATHLETE_CLUBS;
 
 @RestController
 @RequestMapping("/api")
@@ -39,26 +27,17 @@ public class ClubController {
 
     Logger logger = LoggerFactory.getLogger(ClubController.class);
 
-    private final UserService userService;
-    private final ClubRepository clubRepository;
-    private final UserRepository userRepository;
+    private final ClubService clubService;
     private final UserClubRepository userClubRepository;
     private final ClubLeaderboardService clubLeaderboardService;
-    private final RestTemplate restTemplate;
-
-    @Value("${strava.api.url}")
-    private String stravaApiUrl;
 
     @Autowired
-    public ClubController(UserService userService, ClubRepository clubRepository, UserRepository userRepository,
-                          UserClubRepository userClubRepository, ClubLeaderboardService clubLeaderboardService,
-                          RestTemplate restTemplate) {
-        this.userService = userService;
-        this.clubRepository = clubRepository;
-        this.userRepository = userRepository;
+    public ClubController(ClubService clubService,
+                          UserClubRepository userClubRepository,
+                          ClubLeaderboardService clubLeaderboardService) {
+        this.clubService = clubService;
         this.userClubRepository = userClubRepository;
         this.clubLeaderboardService = clubLeaderboardService;
-        this.restTemplate = restTemplate;
     }
 
     @GetMapping(value = "/clubs/{clubId}/members")
@@ -107,20 +86,16 @@ public class ClubController {
         return requestedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     }
 
+    /**
+     * Get user clubs from clubs table if exists for this userId
+     * else call Strava API to get clubs and save to clubs table and user_clubs table.
+     * @param userId
+     * @return
+     */
     @GetMapping(value = "/user/clubs")
     public ResponseEntity<?> getUserClubs(@RequestParam Long userId) {
         try {
             logger.info("Fetching clubs for user: {}", userId);
-
-            // Get access token for the user
-            String accessToken;
-            try {
-                accessToken = userService.getAccessToken(String.valueOf(userId));
-            } catch (Exception e) {
-                logger.error("Failed to get access token for user: {}", userId, e);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Failed to retrieve access token"));
-            }
 
             // Check if clubs already exist for this user
             List<UserClub> userClubs = userClubRepository.findById_UserId(userId);
@@ -144,59 +119,8 @@ public class ClubController {
                 return ResponseEntity.ok(existingClubs);
             }
 
-            // Call Strava API to get clubs
-            HttpHeaders headers = new HttpHeaders();
-            headers.setBearerAuth(accessToken);
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-
-            ResponseEntity<StravaClubDto[]> response = restTemplate.exchange(
-                    stravaApiUrl + API_ATHLETE_CLUBS,
-                    HttpMethod.GET,
-                    entity,
-                    StravaClubDto[].class
-            );
-
-            StravaClubDto[] stravaClubDtos = response.getBody();
-
-            if (stravaClubDtos == null || stravaClubDtos.length == 0) {
-                logger.info("No clubs found for user: {}", userId);
-                return ResponseEntity.ok(new ArrayList<>());
-            }
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
-            // Save clubs to database
-            List<Club> savedClubs = new ArrayList<>();
-            for (StravaClubDto stravaClubDto : stravaClubDtos) {
-                // Check if club already exists
-                Club club = clubRepository.findById(stravaClubDto.getId()).orElseGet(() ->
-                    Club.builder()
-                            .clubId(stravaClubDto.getId())
-                            .name(stravaClubDto.getName())
-                            .city(stravaClubDto.getCity())
-                            .country(stravaClubDto.getCountry())
-                            .sportType(stravaClubDto.getSportType())
-                            .isPrivate(stravaClubDto.getIsPrivate())
-                            .memberCount(stravaClubDto.getMemberCount())
-                            .profileImageUrl(stravaClubDto.getProfileMedium())
-                            .coverPhotoUrl(stravaClubDto.getCoverPhoto())
-                            .build()
-                );
-
-                Club savedClub = clubRepository.save(club);
-                savedClubs.add(savedClub);
-
-                // Save user-club relationship
-                UserClub userClub = new UserClub();
-                userClub.setUser(user);
-                userClub.setClub(savedClub);
-                userClub.setCreatedOn(LocalDateTime.now());
-
-                userClubRepository.save(userClub);
-            }
-
-            logger.info("Saved {} clubs for user: {}", savedClubs.size(), userId);
-            return ResponseEntity.ok(savedClubs);
+            // No saved clubs, call Strava API to get clubs
+            return clubService.callClubsApiAndSavetoDB(userId);
 
         } catch (Exception e) {
             logger.error("Error fetching clubs for user: {}", userId, e);
@@ -204,8 +128,21 @@ public class ClubController {
                     .body(Map.of("error", "Failed to fetch clubs: " + e.getMessage()));
         }
     }
+
+    /**
+     * Get all clubs from clubs table
+     * @return
+     */
+    @GetMapping(value = "/clubs")
+    public ResponseEntity<?> getAllClubs() {
+        try {
+            logger.info("Fetching all clubs");
+            List<UserClubDto> clubs = clubService.getAllClubs();
+            return ResponseEntity.ok(clubs);
+        } catch (Exception e) {
+            logger.error("Error fetching all clubs", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch clubs: " + e.getMessage()));
+        }
+    }
 }
-
-
-
-

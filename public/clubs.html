@@ -93,7 +93,7 @@
 <!-- Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container-fluid px-4">
-        <a class="navbar-brand" href="users.html">
+        <a id="btnBack" class="navbar-brand" href="users.html">
             <i class="bi bi-arrow-left"></i>
             Back to Runners Details
         </a>
@@ -108,13 +108,13 @@
 <div class="container container-top">
     <div class="row">
         <div class="col-md-12">
-            <h1>User's Running Clubs</h1>
+            <h1>Running Clubs</h1>
         </div>
     </div>
 
     <div class="alert alert-info" role="alert">
         <i class="bi bi-info-circle me-2"></i>
-        View all running clubs you're a member of on Strava.
+        View running clubs details
     </div>
 
     <div id="errorAlert" class="alert alert-danger error-alert" role="alert"></div>
@@ -171,18 +171,30 @@
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId');
 
-        if (userId) {
+        if (userId && userId !== "null") {
             loadClubs(userId);
         } else {
-            showError('No user ID provided. Please go back and try again.');
+            loadClubs(null);
+            const backButton = document.getElementById("btnBack");
+            backButton.href = "index.html";
+            backButton.innerHTML = `
+                <i class="bi bi-arrow-left"></i>
+                Back to Home
+            `;
         }
     });
 
     function loadClubs(userId) {
         showLoading(true);
         hideAlerts();
+        let url;
+        if (!userId) {
+            url = `${API_BASE}/clubs`;
+        } else {
+            url = `${API_BASE}/user/clubs?userId=${userId}`;
+        }
 
-        fetch(`${API_BASE}/user/clubs?userId=${userId}`)
+        fetch(url)
             .then(response => {
                 if (!response.ok) throw new Error('Failed to load clubs');
                 return response.json();
@@ -191,7 +203,7 @@
                 populateClubsTable(clubs, userId);
                 showLoading(false);
                 if (clubs.length === 0) {
-                    showSuccess('No clubs found for this user.');
+                    showSuccess('No clubs found.');
                 }
             })
             .catch(error => {
