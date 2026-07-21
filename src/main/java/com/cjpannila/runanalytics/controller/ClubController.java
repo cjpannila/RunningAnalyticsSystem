@@ -60,6 +60,12 @@ public class ClubController {
         }
     }
 
+    /**
+     * This is used to show club dashboard leaderboards for a specific week.
+     * @param clubId of the club
+     * @param weekStart The start date of the week
+     * @return ResponseEntity<ClubWeeklyStatsResponseDto> with List<ClubMemberWeeklyStatsDto> members
+     */
     @GetMapping(value = "/clubs/{clubId}/weekly-stats")
     public ResponseEntity<?> getClubWeeklyStats(@PathVariable Long clubId,
                                                 @RequestParam(required = false) String weekStart) {
