@@ -28,7 +28,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,10 +46,11 @@ public class PerformancePredictionController {
     private final RestTemplate restTemplate;
 
     @GetMapping(value = "/training-dataset", produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> generateTrainingDataset(@RequestParam(required = false) Long userId) {
+    public ResponseEntity<String> generateTrainingDataset(@RequestParam(required = false) Long userId,
+                                                          @RequestParam(required = false) LocalDate toDate) {
         try {
             logger.info("Training dataset export requested");
-            TrainingDatasetExportResultDto result = featureEngineeringService.generateTrainingDatasetCsv(userId);
+            TrainingDatasetExportResultDto result = featureEngineeringService.generateTrainingDatasetCsv(userId, toDate);
 
             byte[] csvBytes = result.getCsvBytes();
             if (csvBytes == null || csvBytes.length == 0) {

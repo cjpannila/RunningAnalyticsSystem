@@ -12,17 +12,16 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -244,7 +243,7 @@ public class FeatureEngineeringService {
     }
 
     //Generates a training dataset CSV covering ALL users across ALL weeks
-    public TrainingDatasetExportResultDto generateTrainingDatasetCsv(Long userId) {
+    public TrainingDatasetExportResultDto generateTrainingDatasetCsv(Long userId, LocalDate toDate) {
         List<User> users = new ArrayList<>();
         if (userId != null) {
             userRepository.findById(userId).ifPresent(users::add);
@@ -269,6 +268,14 @@ public class FeatureEngineeringService {
         LocalDateTime minStart = activityRepository.findMinStartTimeForUsers(allUserIds);
         LocalDateTime maxStart = activityRepository.findMaxStartTimeForUsers(allUserIds);
 
+        // If toDate present set maxStart to toDate so that data generated only upto that
+        if (toDate != null) {
+            LocalDateTime toDateEndTime = toDate.atTime(LocalTime.MAX);
+            maxStart = toDateEndTime.isBefore(maxStart) ? toDateEndTime : maxStart;
+            // if toDate is before minStart no data rows will be generated
+            minStart = toDateEndTime.isBefore(minStart) ? toDateEndTime : minStart;
+        }
+
         if (minStart == null || maxStart == null) {
             logger.warn("No run activities found — returning header-only CSV");
             result.setCsvBytes((CSV_HEADER + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
@@ -286,8 +293,9 @@ public class FeatureEngineeringService {
         StringBuilder sb = new StringBuilder();
         sb.append(CSV_HEADER).append("\n");
 
-        // Iterate oldest → newest week
+        // Iterate oldest to newest week
         LocalDate weekStart = firstMonday;
+        // loop week by week until weekStart is less than or equal to lastMonday value
         while (!weekStart.isAfter(lastMonday)) {
             for (User user : users) {
                 Long uid = user.getUserId();
@@ -295,7 +303,7 @@ public class FeatureEngineeringService {
 
                 Optional<WeeklySummary> weeklySummaryOptional =
                         weeklySummaryRepository.findByUserAndWeekStart(user, weekStart);
-                //Remove the last row in the weekly_summary table with no target next week distance
+                // getTargetNextWeekKm() > 0 - To not include the last row in the weekly_summary table with no target next week distance
                 if (weeklySummaryOptional.isPresent()
                     && weeklySummaryOptional.get().getTargetNextWeekKm() > 0) {
                     WeeklySummary weeklySummary = weeklySummaryOptional.get();
