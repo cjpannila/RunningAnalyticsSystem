@@ -174,18 +174,18 @@
                         <table id="predictionTable" class="table table-sm table-striped align-middle">
                             <thead>
                             <tr>
-                                <th data-sort="user_id">user id</th>
-                                <th data-sort="week_start">week start</th>
-                                <th data-sort="run_count">run count</th>
-                                <th data-sort="total_distance_km">distance (km)</th>
-                                <th data-sort="avg_pace_min_per_km">avg pace (min/km)</th>
-                                <th data-sort="total_elevation_m">elevation (m)</th>
-                                <th data-sort="avg_cadence">avg cadence</th>
-                                <th data-sort="avg_hr">avg hr</th>
-                                <th data-sort="longest_run_km">longest run</th>
-                                <th data-sort="training_load">training load</th>
-                                <th class="prediction-header" data-sort="target_next_week_km_prediction">prediction km</th>
-                                <th class="prediction-header" data-sort="target_next_week_pace_prediction">prediction pace</th>
+                                <th data-sort="user_name">User</th>
+                                <th data-sort="week_start">Week start</th>
+                                <th data-sort="run_count">Run count</th>
+                                <th data-sort="total_distance_km">Distance (km)</th>
+                                <th data-sort="avg_pace_min_per_km">Avg pace (min/km)</th>
+                                <th data-sort="total_elevation_m">Elevation (m)</th>
+                                <th data-sort="avg_cadence">Avg cadence</th>
+                                <th data-sort="avg_hr">Avg HR</th>
+                                <th data-sort="longest_run_km">Longest run</th>
+                                <th data-sort="training_load">Training load</th>
+                                <th class="prediction-header" data-sort="target_next_week_km_prediction">Prediction km</th>
+                                <th class="prediction-header" data-sort="target_next_week_pace_prediction">Prediction pace</th>
                             </tr>
                             </thead>
                             <tbody id="predictionTableBody">
@@ -359,7 +359,7 @@
 
         tbody.innerHTML = pageRows.map(row => `
             <tr>
-                <td>${formatValue(row.user_id)}</td>
+                <td>${formatValue(row.user_name)}</td>
                 <td>${formatValue(row.week_start)}</td>
                 <td>${formatValue(row.run_count)}</td>
                 <td>${formatValue(row.total_distance_km, 2)}</td>

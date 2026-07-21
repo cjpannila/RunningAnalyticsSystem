@@ -18,6 +18,9 @@ public class PredictionTableRowDto {
     @JsonProperty("user_id")
     private Long userId;
 
+    @JsonProperty("user_name")
+    private String userName;
+
     @JsonProperty("week_start")
     private LocalDate weekStart;
 

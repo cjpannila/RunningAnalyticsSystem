@@ -67,6 +67,8 @@ public class FeatureEngineeringService {
             if (limit) {
                 rowLimit = Math.min(Constants.PREDICTION_DATAROWS_PER_USER, summaries.size());
                 if (summaries.size() > rowLimit) {
+                    // If for generating prediction csv add another older row before the oldest one
+                    // that will be used by prediction module to generate oldest week's prediction
                     rowLimit = forCSV ? rowLimit + 1 : rowLimit;
                 }
             }
@@ -89,10 +91,10 @@ public class FeatureEngineeringService {
                         .build());
             }
             //if loading for the UI table include the future record
-            if (!rows.isEmpty() && !forCSV) {
+            if (!summaries.isEmpty() && !forCSV) {
                 PredictionTableRowDto futureRecord = new PredictionTableRowDto();
                 futureRecord.setUserId(uid);
-                futureRecord.setWeekStart(rows.getFirst().getWeekStart().plusWeeks(1));
+                futureRecord.setWeekStart(summaries.getFirst().getWeekStart().plusWeeks(1));
                 //Add the future record to the beginning of the list
                 rows.addFirst(futureRecord);
             }
@@ -248,7 +250,12 @@ public class FeatureEngineeringService {
         if (userId != null) {
             userRepository.findById(userId).ifPresent(users::add);
         } else {
-            userRepository.findAll().forEach(users::add);
+            //Add all users filtered by the config list
+            userRepository.findAll().forEach(user -> {
+                if (!Constants.USER_IDS_TO_FILTER.contains(user.getUserId())) {
+                    users.add(user);
+                }
+            });
         }
         TrainingDatasetExportResultDto result = new TrainingDatasetExportResultDto();
         result.setRowsGenerated(0);
@@ -330,6 +337,18 @@ public class FeatureEngineeringService {
         logger.info("Training dataset generation complete");
         result.setCsvBytes(sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
         return result;
+    }
+
+    public List<PredictionTableRowDto> getPredictionRowsWithNames(List<PredictionTableRowDto> predictionRows) {
+        for (PredictionTableRowDto row : predictionRows) {
+            if (row.getUserId() != null) {
+                userRepository.findById(row.getUserId()).ifPresent(user -> {
+                    String name = user.getFirstname() + " " + user.getLastname();
+                    row.setUserName(name.trim());
+                });
+            }
+        }
+        return predictionRows;
     }
 
     private double round(double value, int decimals) {
