@@ -37,29 +37,20 @@ CREATE TABLE user_clubs (
 CREATE TABLE activities (
     activity_id BIGINT PRIMARY KEY,  -- Strava activity ID
     user_id BIGINT REFERENCES users(user_id),
-
     activity_name VARCHAR(255),
     activity_type VARCHAR(50),
-
     start_time TIMESTAMP,
-
     distance_m FLOAT,
     moving_time_s INT,
     elapsed_time_s INT,
-
     elevation_gain_m FLOAT,
-
     avg_speed_mps FLOAT,
     max_speed_mps FLOAT,
-
     avg_cadence FLOAT,
-
     avg_heartrate_bpm FLOAT,
     max_heartrate_bpm FLOAT,
-
     device_name VARCHAR(100),
     gear_id VARCHAR(50),
-
     map_polyline TEXT
 );
 
