@@ -8,11 +8,13 @@ import com.cjpannila.runanalytics.repositories.UserClubRepository;
 import com.cjpannila.runanalytics.dto.ClubMemberDto;
 import com.cjpannila.runanalytics.service.ClubLeaderboardService;
 import com.cjpannila.runanalytics.service.ClubService;
+import com.cjpannila.runanalytics.util.ResponseTimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.StopWatch;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.DayOfWeek;
@@ -42,6 +44,7 @@ public class ClubController {
 
     @GetMapping(value = "/clubs/{clubId}/members")
     public ResponseEntity<?> getClubMembers(@PathVariable Long clubId) {
+        StopWatch watch = ResponseTimeUtil.getStopWatchAndStart();
         try {
             List<UserClub> userClubs = userClubRepository.findById_ClubId(clubId);
             List<ClubMemberDto> members = new ArrayList<>();
@@ -53,6 +56,7 @@ public class ClubController {
                         .lastname(uc.getUser().getLastname())
                         .build());
             }
+            ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/clubs/{clubId}/members", watch);
             return ResponseEntity.ok(members);
         } catch (Exception e) {
             logger.error("Error fetching club members for club: {}", clubId, e);
@@ -69,9 +73,11 @@ public class ClubController {
     @GetMapping(value = "/clubs/{clubId}/weekly-stats")
     public ResponseEntity<?> getClubWeeklyStats(@PathVariable Long clubId,
                                                 @RequestParam(required = false) String weekStart) {
+        StopWatch watch = ResponseTimeUtil.getStopWatchAndStart();
         try {
             LocalDate selectedWeekStart = resolveWeekStart(weekStart);
             ClubWeeklyStatsResponseDto stats = clubLeaderboardService.getWeeklyStats(clubId, selectedWeekStart);
+            ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/clubs/{clubId}/weekly-stats", watch);
             return ResponseEntity.ok(stats);
         } catch (DateTimeParseException e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid weekStart format. Use YYYY-MM-DD."));
@@ -100,6 +106,7 @@ public class ClubController {
      */
     @GetMapping(value = "/user/clubs")
     public ResponseEntity<?> getUserClubs(@RequestParam Long userId) {
+        StopWatch watch = ResponseTimeUtil.getStopWatchAndStart();
         try {
             logger.info("Fetching clubs for user: {}", userId);
 
@@ -122,11 +129,14 @@ public class ClubController {
 
             if (!existingClubs.isEmpty()) {
                 logger.info("Returning cached clubs for user: {}", userId);
+                ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/user/clubs", watch);
                 return ResponseEntity.ok(existingClubs);
             }
 
             // No saved clubs, call Strava API to get clubs
-            return clubService.callClubsApiAndSavetoDB(userId);
+            ResponseEntity<?> response = clubService.callClubsApiAndSavetoDB(userId);
+            ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/user/clubs", watch);
+            return response;
 
         } catch (Exception e) {
             logger.error("Error fetching clubs for user: {}", userId, e);
@@ -141,9 +151,11 @@ public class ClubController {
      */
     @GetMapping(value = "/clubs")
     public ResponseEntity<?> getAllClubs() {
+        StopWatch watch = ResponseTimeUtil.getStopWatchAndStart();
         try {
             logger.info("Fetching all clubs");
             List<UserClubDto> clubs = clubService.getAllClubs();
+            ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/clubs", watch);
             return ResponseEntity.ok(clubs);
         } catch (Exception e) {
             logger.error("Error fetching all clubs", e);
