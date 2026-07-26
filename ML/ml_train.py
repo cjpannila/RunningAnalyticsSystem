@@ -11,13 +11,13 @@ from sklearn.pipeline import Pipeline
 
 from config import DATASET, MODELS, MODEL_TYPE_LINEAR_REGRESSION, MODEL_TYPE_GRADIENT_BOOSTING, validate_model_type
 
-def train_model(target, model_type):
+def train_model(target, model_type, drop_features=None):
     model_type = validate_model_type(model_type)
 
     # Complete training pipeline
     df = load_dataset()
 
-    X, y = prepare_features(df, target)
+    X, y = prepare_features(df, target, drop_features)
 
     X_train, X_test, y_train, y_test = split_dataset(X, y)
 
@@ -37,7 +37,7 @@ def load_dataset():
     print(f"Dataset loaded: {df.shape}")
     return df
 
-def prepare_features(df, target):
+def prepare_features(df, target, drop_features=None):
     # Convert date and extract time features
     df["week_start"] = pd.to_datetime(df["week_start"])
 
@@ -52,6 +52,13 @@ def prepare_features(df, target):
             "week_start"
         ]
     )
+
+    # Add ablation features dropping if provided
+    if drop_features:
+        print("\nDropping columns:")
+        print(drop_features)
+        X = X.drop(columns=drop_features, errors="ignore")
+
     #Set Target values to y
     y = df[target]
 
