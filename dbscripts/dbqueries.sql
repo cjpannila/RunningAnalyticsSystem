@@ -15,10 +15,13 @@ Select * from users;
 
 Select * from activities limit 10;
 Select count(*) from activities where activity_type = 'Run' and distance_m > 0;
-Select count(*) from activities where user_id = 7016611;
-Select count(*) from activities where user_id = 7016611 and activity_type = 'Run';
-Select count(*) from activities where user_id = 7016611 and avg_heartrate_bpm is not null and avg_cadence is not null and activity_type = 'Run';
+Select count(*) from activities where user_id = 17584626;
+Select count(*) from activities where user_id = 17584626 and activity_type = 'Run';
+Select count(*) from activities where user_id = 23177662 and avg_heartrate_bpm is not null and avg_cadence is not null and activity_type = 'Run';
+select * from activities where activity_type = 'Run' order by start_time limit 1; --oldest activity
+select * from activities where activity_type = 'Run' order by start_time desc limit 1; --latest activity
 
+select count(*) from weekly_summary;
 select * from weekly_summary where user_id = 32658279 order by week_start desc;
 --delete from weekly_summary where user_id = 98093514;
 
@@ -27,6 +30,6 @@ select * from weekly_summary where user_id = 32658279 order by week_start desc;
 -- 204 Anup > 132 
 
 select count(*) from weekly_summary where user_id = 32658279
-select * from user_clubs where user_id = 32658279;
+select * from user_clubs where user_id = 23177662;
 Select * from clubs;
-
+Select count(*) from clubs;
