@@ -364,7 +364,7 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "http://127.0.0.1:8001/predict?target=target_next_week_km",
+              "raw": "http://127.0.0.1:8001/predict?target=target_next_week_km&model_type=random_forest",
               "protocol": "http",
               "host": [
                 "127",
@@ -380,6 +380,27 @@
                 {
                   "key": "target",
                   "value": "target_next_week_km"
+                },
+                {
+                  "key": "model_type",
+                  "value": "random_forest"
+                },
+                {
+                  "key": "drop_features",
+                  "value": "total_distance_km",
+                  "disabled": true
+                },
+                {
+                  "key": "drop_features",
+                  "value": "run_count",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "drop_features",
+                  "value": "longest_run_km",
+                  "type": "text",
+                  "disabled": true
                 }
               ]
             }
@@ -392,7 +413,110 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "http://127.0.0.1:8001/train?target=target_next_week_pace&model_type=gradient_boosting",
+              "raw": "http://127.0.0.1:8001/train?target=target_next_week_km&model_type=random_forest",
+              "protocol": "http",
+              "host": [
+                "127",
+                "0",
+                "0",
+                "1"
+              ],
+              "port": "8001",
+              "path": [
+                "train"
+              ],
+              "query": [
+                {
+                  "key": "target",
+                  "value": "target_next_week_km"
+                },
+                {
+                  "key": "model_type",
+                  "value": "random_forest"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ML/train distance drop multiple",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://127.0.0.1:8001/train?target=target_next_week_km&model_type=random_forest&drop_features=total_running_time_s&drop_features=avg_pace_min_per_km&drop_features=total_distance_km&drop_features=longest_run_km&drop_features=run_count&drop_features=avg_cadence&drop_features=total_elevation_m&drop_features=avg_hr&drop_features=training_load",
+              "protocol": "http",
+              "host": [
+                "127",
+                "0",
+                "0",
+                "1"
+              ],
+              "port": "8001",
+              "path": [
+                "train"
+              ],
+              "query": [
+                {
+                  "key": "target",
+                  "value": "target_next_week_km"
+                },
+                {
+                  "key": "model_type",
+                  "value": "random_forest"
+                },
+                {
+                  "key": "drop_features",
+                  "value": "total_running_time_s"
+                },
+                {
+                  "key": "drop_features",
+                  "value": "avg_pace_min_per_km"
+                },
+                {
+                  "key": "drop_features",
+                  "value": "total_distance_km"
+                },
+                {
+                  "key": "drop_features",
+                  "value": "longest_run_km"
+                },
+                {
+                  "key": "drop_features",
+                  "value": "run_count"
+                },
+                {
+                  "key": "drop_features",
+                  "value": "avg_cadence"
+                },
+                {
+                  "key": "drop_features",
+                  "value": "total_elevation_m",
+                  "type": "text"
+                },
+                {
+                  "key": "drop_features",
+                  "value": "avg_hr",
+                  "type": "text"
+                },
+                {
+                  "key": "drop_features",
+                  "value": "training_load",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ML/train pace drop multiple",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://127.0.0.1:8001/train?target=target_next_week_pace&model_type=random_forest",
               "protocol": "http",
               "host": [
                 "127",
@@ -411,7 +535,52 @@
                 },
                 {
                   "key": "model_type",
-                  "value": "gradient_boosting"
+                  "value": "random_forest"
+                },
+                {
+                  "key": "drop_features",
+                  "value": "total_running_time_s",
+                  "disabled": true
+                },
+                {
+                  "key": "drop_features",
+                  "value": "avg_pace_min_per_km",
+                  "disabled": true
+                },
+                {
+                  "key": "drop_features",
+                  "value": "total_distance_km",
+                  "disabled": true
+                },
+                {
+                  "key": "drop_features",
+                  "value": "longest_run_km",
+                  "disabled": true
+                },
+                {
+                  "key": "drop_features",
+                  "value": "run_count",
+                  "disabled": true
+                },
+                {
+                  "key": "drop_features",
+                  "value": "avg_cadence",
+                  "disabled": true
+                },
+                {
+                  "key": "drop_features",
+                  "value": "total_elevation_m",
+                  "disabled": true
+                },
+                {
+                  "key": "drop_features",
+                  "value": "avg_hr",
+                  "disabled": true
+                },
+                {
+                  "key": "drop_features",
+                  "value": "training_load",
+                  "disabled": true
                 }
               ]
             }
