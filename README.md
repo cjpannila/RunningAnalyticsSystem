@@ -1,6 +1,6 @@
 # RunAnalyticsSystem
-A Data-Driven Framework for Monitoring and Predicting Performance in 
-Recreational Running Communities Using Wearable Technology Data
+A data-driven framework for monitoring and predicting performance in 
+recreational running communities using wearable technology data
 
 Running Analytics System is a web-based platform developed to help 
 recreational runners monitor their training activities using data 
@@ -15,12 +15,45 @@ decisions while reducing the risk of overtraining and injury.
 
 Authorization URL : [link](https://www.strava.com/oauth/authorize?client_id=218954&response_type=code&redirect_uri=https://runninganalyticsoauth.onrender.com/runanalytics-oauth/api/authenticate&approval_prompt=force&scope=read,activity:read_all)
 
-Build with maven
+GitHub repository for the main application: [https://github.com/cjpannila/RunningAnalyticsSystem](https://github.com/cjpannila/RunningAnalyticsSystem)
+
+GitHub repository for the authorization module: [https://github.com/cjpannila/RunningAnalyticsOAuth](https://github.com/cjpannila/RunningAnalyticsOAuth)
+
+Maven 3.x should be installed in the server to build the code
+Maven version
+```bash
+mvn -v
+Apache Maven 3.9.5
+```
+Java 21 should be installed in the server to run the application
+Java version
+```bash
+java -version
+java 21.0.11
+```
+
+DB setup
+PostgreSQL should be installed in the server to run the application
+```bash
+cd <RunningAnalyticsSystem_home>
+postgres --version
+postgres (PostgreSQL) 16.1
+# 1. Create the database in PostgreSQL
+createdb -U postgres RunAnalytics
+# 2. Execute the dbscript located at `dbscritps/dbscript.sql` into the DB
+psql -U postgres -d RunAnalytics -f dbscripts/dbscript.sql
+# 3. If the database user password is not set to 'root', update the `application.properties` file with the correct password
+spring.datasource.password=root
+# 4. Import the data from the `dbscripts/RunAnalytics_backup.sql` file into the database
+psql -U postgres -d RunAnalytics -f dbscripts/RunAnalytics_backup.sql
+```
+
+Build with maven from the project root directory
 ```bash
 mvn clean install
 ```
 
-How to package
+How to package from the project root directory
 ```bash
 mvn clean package
 ```
@@ -29,13 +62,10 @@ run the application with the following command:
 java -jar target/runanalytics-0.0.1-SNAPSHOT.jar
 ```
 
-Run the application
+Run the application from the project root directory
 ```bash
 mvn spring-boot:run
 ```
-
-DB setup
-`dbscritps/dbsetup.sql`
 
 Main page
 http://localhost:8080/runanalytics/
