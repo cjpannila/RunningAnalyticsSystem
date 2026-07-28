@@ -77,6 +77,25 @@ Main features
 - Generate predictions related to performance, training load and recovery
 - Provide meaningful insights into running performance for recreational running clubs
 
+Run ML prediction module
+For this Python should be installed in the server to run the ML prediction module
+Python version
+```bash
+python --version # Check version - Python 3.14.6
+```
+To install required libraries from requirements.txt
+```bash
+cd <RunningAnalyticsSystem_home>\ML\
+python -m venv .venv # create virtual environment
+.venv\Scripts\activate.ps1 # activate virtual environment
+pip install -r requirements.txt # install dependencies
+```
+Start Python FastAPI server with the following command:
+```bash
+cd <RunningAnalyticsSystem_home>\ML\
+uvicorn ml_server:app --host 127.0.0.1 --port 8001
+```
+
 ML training
 - Reads `Downloads/training_dataset.csv` and trains a Random Forest regressor / Linear Regression / Gradient Boosting model
 - Run python ML/ml_train.py to train via api call `POST http://127.0.0.1:8001/train?target={target}&model_type={model_type}`
@@ -95,13 +114,6 @@ The `{model_type}` parameter can be one of the following:
 - `random_forest`
 - `linear_regression`
 - `gradient_boosting`
-
-Run ML prediction module
-Start Python FastAPI server with the following command:
-```bash
-cd <RunningAnalyticsSystem_home>\ML\
-uvicorn ml_server:app --host 127.0.0.1 --port 8001
-```
 
 It has below endpoints:
 - GET /health: Returns a simple health check response to verify that the server is running.
