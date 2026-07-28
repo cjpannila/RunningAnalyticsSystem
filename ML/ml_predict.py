@@ -5,7 +5,7 @@ import pandas as pd
 
 from config import PREDICTION_DATASET, MODELS, validate_model_type
 
-def generate_predictions(target, model_type):
+def generate_predictions(target, model_type, drop_features=None):
     model_type = validate_model_type(model_type)
 
     print("Generating Predictions...")
@@ -19,7 +19,7 @@ def generate_predictions(target, model_type):
     # Keep identifying columns
     result = df[["user_id", "week_start"]].copy()
 
-    X = prepare_features(df, features)
+    X = prepare_features(df, features, drop_features)
 
     # Predict and assign to result
     result[f"{target}_prediction"] = model.predict(X)
@@ -34,7 +34,7 @@ def load_dataset():
     print(f"Dataset loaded: {df.shape}")
     return df
 
-def prepare_features(df, features):
+def prepare_features(df, features, drop_features=None):
     # Convert date and extract time features
     df["week_start"] = pd.to_datetime(df["week_start"])
     df["month"] = df["week_start"].dt.month
@@ -42,6 +42,12 @@ def prepare_features(df, features):
 
     # Drop columns that were not used during training
     X = df.drop(columns=["user_id", "week_start"])
+
+    # Add ablation features dropping if provided
+    if drop_features:
+        print("\nDropping columns:")
+        print(drop_features)
+        X = X.drop(columns=drop_features, errors="ignore")
 
     # Convert categorical variables to numeric features
     X = pd.get_dummies(X)

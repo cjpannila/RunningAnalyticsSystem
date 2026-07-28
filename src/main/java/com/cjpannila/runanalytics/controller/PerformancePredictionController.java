@@ -5,6 +5,7 @@ import com.cjpannila.runanalytics.dto.PredictionTableRowDto;
 import com.cjpannila.runanalytics.dto.TrainingDatasetExportResultDto;
 import com.cjpannila.runanalytics.service.FeatureEngineeringService;
 import com.cjpannila.runanalytics.util.Constants;
+import com.cjpannila.runanalytics.util.ResponseTimeUtil;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.util.StopWatch;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,6 +50,7 @@ public class PerformancePredictionController {
     @GetMapping(value = "/training-dataset", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> generateTrainingDataset(@RequestParam(required = false) Long userId,
                                                           @RequestParam(required = false) LocalDate toDate) {
+        StopWatch watch = ResponseTimeUtil.getStopWatchAndStart();
         try {
             logger.info("Training dataset export requested");
             TrainingDatasetExportResultDto result = featureEngineeringService.generateTrainingDatasetCsv(userId, toDate);
@@ -71,6 +74,7 @@ public class PerformancePredictionController {
             headers.add("X-Rows-Generated", String.valueOf(result.getRowsGenerated()));
             headers.add("X-Activities-Used", String.valueOf(result.getActivitiesUsed()));
 
+            ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/performance/training-dataset", watch);
             return ResponseEntity.ok()
                     .headers(headers)
                     .body("Saved training dataset to Downloads/" + Constants.TRAINING_DATASET_FILE_NAME);
@@ -82,14 +86,17 @@ public class PerformancePredictionController {
 
     @GetMapping(value = "/save-weekly-summary", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> saveWeeklySummary() {
+        StopWatch watch = ResponseTimeUtil.getStopWatchAndStart();
         try {
             logger.info("Weekly summary save requested");
             //skip empty hr and cadence records - false
             TrainingDatasetExportResultDto result = featureEngineeringService.saveWeeklySummary(false);
             if (result.getRowsGenerated() > 0) {
+                ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/performance/save-weekly-summary", watch);
                 return ResponseEntity.ok("Saved weekly summary, "
                         + result.getRowsGenerated() + " records were saved");
             }
+            ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/performance/save-weekly-summary", watch);
             return ResponseEntity.status(HttpStatus.OK).body("No new weekly summary records were saved");
         } catch (Exception e) {
             logger.error("Failed to save weekly summary", e);
@@ -100,8 +107,11 @@ public class PerformancePredictionController {
     @GetMapping(value = "/prediction-rows", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<PredictionTableRowDto>> getPredictionRows(@RequestParam(defaultValue = "true") boolean limit,
                                                                           @RequestParam(required = false) Long userId) {
+        StopWatch watch = ResponseTimeUtil.getStopWatchAndStart();
+        logger.info("Prediction rows requested for userId={}, limit={}", userId, limit);
         List<PredictionTableRowDto> predictionRows = featureEngineeringService.buildPredictionRows(limit, false, userId);
         predictionRows = featureEngineeringService.getPredictionRowsWithNames(predictionRows);
+        ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/performance/prediction-rows", watch);
         return ResponseEntity.ok(predictionRows);
     }
 
@@ -110,6 +120,7 @@ public class PerformancePredictionController {
                                                          @RequestParam(defaultValue = "true") boolean limit,
                                                          @RequestParam(name = "model_type", defaultValue = Constants.RANDOM_FOREST) String modelType,
                                                          @RequestParam(required = false) Long userId) {
+        StopWatch watch = ResponseTimeUtil.getStopWatchAndStart();
         try {
             logger.info("Prediction requested for target={}", target);
 
@@ -137,6 +148,7 @@ public class PerformancePredictionController {
             result.setDatasetPath(resolvePredictionDatasetFile().toAbsolutePath().toString());
             result.setRowsGenerated(datasetResult.getRowsGenerated());
             result.setPredictions(getShiftedPredictions(predictions, target));
+            ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/performance/predict", watch);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             logger.error("Failed to generate predictions", e);

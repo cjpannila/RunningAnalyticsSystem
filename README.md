@@ -13,22 +13,29 @@ related to performance. The objective is to
 support runners and coaches in making informed, data-driven training 
 decisions while reducing the risk of overtraining and injury.
 
-Authorization URL
-https://www.strava.com/oauth/authorize?client_id=218954&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=read,activity:read_all
+Authorization URL : [link](https://www.strava.com/oauth/authorize?client_id=218954&response_type=code&redirect_uri=https://runninganalyticsoauth.onrender.com/runanalytics-oauth/api/authenticate&approval_prompt=force&scope=read,activity:read_all)
 
 Build with maven
+```bash
 mvn clean install
+```
 
 How to package
+```bash
 mvn clean package
+```
 run the application with the following command:
+```bash
 java -jar target/runanalytics-0.0.1-SNAPSHOT.jar
+```
 
 Run the application
+```bash
 mvn spring-boot:run
+```
 
 DB setup
-dbscritps/dbsetup.sql
+`dbscritps/dbsetup.sql`
 
 Main page
 http://localhost:8080/runanalytics/
@@ -41,10 +48,23 @@ Main features
 - Provide meaningful insights into running performance for recreational running clubs
 
 ML training
-- Reads training_dataset.csv custom path with `--input`
-- Run python ML/train_model.py to train a Random Forest regressor
-- The trained model is saved as `ML/trained_model.pkl`
+- Reads `Downloads/training_dataset.csv` and trains a Random Forest regressor / Linear Regression / Gradient Boosting model
+- Run python ML/ml_train.py to train via api call `POST http://127.0.0.1:8001/train?target={target}&model_type={model_type}`
+- The trained model is saved as `ML/models/{model_type}_{target}.pkl` (eg. `ML/models/random_forest_target_next_week_km.pkl`)
 - Evaluation metrics are printed to the console after training
+- Predict using api call `http://127.0.0.1:8001/predict?target={target}&model_type={model_type}`
+  with input features saved in file `Downloads/prediction_dataset.csv`
+- Evaluation results can be obtained via api call `http://127.0.0.1:8001/evaluate?target={target}&model_type={model_type}`
+
+For above three ML api calls
+The `{target}` parameter can be one of the following:
+- `target_next_week_km`
+- `target_next_week_pace`
+
+The `{model_type}` parameter can be one of the following:
+- `random_forest`
+- `linear_regression`
+- `gradient_boosting`
 
 Run ML prediction module
 Start Python FastAPI server with the following command:
@@ -58,3 +78,19 @@ It has below endpoints:
   - parameters target, model_type
 - POST /predict: Accepts a JSON payload with input features and returns the predicted performance metrics.
   - parameters target, model_type
+
+How to evaluate the previously trained model
+- Copy the trained model file from `ML/models_bakup/{model_type}_{target}.pkl` to `ML/models/{model_type}_{target}.pkl`
+- Call the evaluate api endpoint `POST http://127.0.0.1:8001/evaluate?target={target}&model_type={model_type}`
+- Or can directly use thee `Evaluate Model` button in the web application in the `Performance Predictions` page.
+
+How to predict using the previously trained model
+- Copy the trained model file from `ML/models_bakup/{model_type}_{target}.pkl` to `ML/models/{model_type}_{target}.pkl`
+- Copy the prediction dataset from `ML/dataset_backup/prediction_dataset.csv` to `Downloads` directory.
+- Call the predict api endpoint `POST http://127.0.0.1:8001/predict?target={target}&model_type={model_type}`
+- Or can directly use thee `Predict` button in the web application in the `Performance Predictions` page.
+
+How to train a new model
+- Copy the training dataset from `ML/dataset_backup/training_dataset.csv` to `Downloads` directory.
+- Call the train api endpoint `POST http://127.0.0.1:8001/train?target={target}&model_type={model_type}`
+- Or can directly use thee `Train Model` button in the web application in the `Performance Predictions` page.

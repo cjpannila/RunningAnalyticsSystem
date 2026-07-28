@@ -90,6 +90,7 @@ public class ClubService {
         // Save clubs to database
         List<Club> savedClubs = new ArrayList<>();
         // Loop through stravaClubDtos returned from Strava api
+        int savedClubsCount = 0;
         for (StravaClubDto stravaClubDto : stravaClubDtos) {
             // Check if club already exists
             Club club = clubRepository.findById(stravaClubDto.getId()).orElseGet(() ->
@@ -116,9 +117,10 @@ public class ClubService {
                 userClub.setClub(savedClub);
                 userClub.setCreatedOn(LocalDateTime.now());
                 userClubRepository.save(userClub);
+                savedClubsCount++;
             }
         }
-        logger.info("Saved {} clubs for user: {}", savedClubs.size(), userId);
+        logger.info("Saved {} clubs for user: {}", savedClubsCount, userId);
         return ResponseEntity.ok(savedClubs);
     }
 

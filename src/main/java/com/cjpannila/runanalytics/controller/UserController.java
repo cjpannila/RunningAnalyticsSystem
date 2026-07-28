@@ -10,11 +10,13 @@ import com.cjpannila.runanalytics.dto.StravaTokenResponse;
 import com.cjpannila.runanalytics.entities.User;
 import com.cjpannila.runanalytics.repositories.UserRepository;
 import com.cjpannila.runanalytics.util.Constants;
+import com.cjpannila.runanalytics.util.ResponseTimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StopWatch;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
@@ -68,6 +70,7 @@ public class UserController {
                                       @RequestParam(required = false) String search,
                                       @RequestParam(required = false) String userIds) {
         try {
+            StopWatch watch = ResponseTimeUtil.getStopWatchAndStart();
             boolean allWeeks = weekStart != null && "ALL".equalsIgnoreCase(weekStart.trim());
             LocalDate selectedWeekStart = null;
             LocalDate weekEnd = null;
@@ -202,6 +205,7 @@ public class UserController {
             resp.put("weekStart", (selectedWeekStart != null) ? selectedWeekStart.toString() : "ALL");
             resp.put("weekEnd", (weekEnd != null) ? weekEnd.toString() : "ALL");
             resp.put("users", results);
+            ResponseTimeUtil.stopAndLogResponseTime(logger, "api/users/weekly-stats", watch);
             return resp;
         } catch (Exception e) {
             logger.error("Error computing weekly stats", e);
@@ -225,9 +229,10 @@ public class UserController {
 
     @GetMapping(value = "/users")
     public List<UserDto> users() {
+        StopWatch watch = ResponseTimeUtil.getStopWatchAndStart();
         logger.info("Getting all users");
         List<User> users = userService.getUsers();
-        return users.stream()
+        List<UserDto> userDtos = users.stream()
                 .map(user -> UserDto.builder()
                         .userId(user.getUserId())
                         .firstname(user.getFirstname())
@@ -239,6 +244,8 @@ public class UserController {
                         .totalRunsWithAllData(activityRepository.getRunCountWithAllDataByUser(user.getUserId()))
                         .build())
                 .collect(Collectors.toList());
+        ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/users", watch);
+        return userDtos;
     }
 
     @GetMapping(value = "/user")
@@ -248,6 +255,7 @@ public class UserController {
 
     @PostMapping(value = "/authenticate")
     public ResponseEntity<?> authenticate(@RequestParam String code) {
+        StopWatch watch = ResponseTimeUtil.getStopWatchAndStart();
         try {
             logger.info("Authenticating with Strava code via API");
 
@@ -297,15 +305,16 @@ public class UserController {
             User savedUser = userRepository.save(user);
             logger.info("User saved successfully: {}", savedUser.getUserId());
 
-            return ResponseEntity.ok(Map.of(
+            Map<String, Object> resp = Map.of(
                     "message", "User authenticated and saved successfully",
                     "userId", savedUser.getUserId(),
                     "firstname", savedUser.getFirstname(),
                     "lastname", savedUser.getLastname(),
                     "city", savedUser.getCity(),
                     "country", savedUser.getCountry()
-            ));
-
+            );
+            ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/authenticate", watch);
+            return ResponseEntity.ok(resp);
         } catch (Exception e) {
             logger.error("Error during Strava authentication", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -315,6 +324,7 @@ public class UserController {
 
     @GetMapping(value = "/page/authenticate")
     public RedirectView authenticateViaPage(@RequestParam String code) {
+        StopWatch watch = ResponseTimeUtil.getStopWatchAndStart();
         try {
             logger.info("Authenticating with Strava code via User Interface");
 
@@ -364,8 +374,8 @@ public class UserController {
             logger.info("User saved successfully: {}", savedUser.getUserId());
 
             // Redirect to success page with userId
+            ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/page/authenticate", watch);
             return new RedirectView("/runanalytics/authenticated.html?userId=" + savedUser.getUserId());
-
         } catch (Exception e) {
             logger.error("Error during Strava authentication", e);
             return authenticatedErrorRedirect("Authentication failed: " + e.getMessage());
@@ -384,6 +394,7 @@ public class UserController {
 
     @PostMapping(value = "/gettoken")
     public ResponseEntity<?> getAccessToken(@RequestParam String userId) {
+        StopWatch watch = ResponseTimeUtil.getStopWatchAndStart();
         try {
             String accessToken = userService.getAccessToken(userId);
             if  (accessToken != null && !accessToken.isEmpty()) {
@@ -394,6 +405,7 @@ public class UserController {
                     if (userOpt.isPresent()) {
                         User user = userOpt.get();
                         Long expiresAt = user.getTokenExpiresAt();
+                        ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/gettoken", watch);
                         return ResponseEntity.ok(Map.of(
                                 "access_token", accessToken,
                                 "expires_at", expiresAt != null ? expiresAt : 0L
@@ -403,6 +415,7 @@ public class UserController {
                     // invalid userId format — fall back to returning access token only
                     logger.warn("Invalid userId format when returning expires_at: {}", userId);
                 }
+                ResponseTimeUtil.stopAndLogResponseTime(logger, "/api/gettoken", watch);
                 return ResponseEntity.ok(Map.of("access_token", accessToken));
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
