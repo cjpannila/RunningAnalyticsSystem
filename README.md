@@ -68,7 +68,10 @@ The `{model_type}` parameter can be one of the following:
 
 Run ML prediction module
 Start Python FastAPI server with the following command:
+```bash
+cd <RunningAnalyticsSystem_home>\ML\
 uvicorn ml_server:app --host 127.0.0.1 --port 8001
+```
 
 It has below endpoints:
 - GET /health: Returns a simple health check response to verify that the server is running.
