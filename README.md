@@ -78,3 +78,19 @@ It has below endpoints:
   - parameters target, model_type
 - POST /predict: Accepts a JSON payload with input features and returns the predicted performance metrics.
   - parameters target, model_type
+
+How to evaluate the previously trained model
+- Copy the trained model file from `ML/models_bakup/{model_type}_{target}.pkl` to `ML/models/{model_type}_{target}.pkl`
+- Call the evaluate api endpoint `POST http://127.0.0.1:8001/evaluate?target={target}&model_type={model_type}`
+- Or can directly use thee `Evaluate Model` button in the web application in the `Performance Predictions` page.
+
+How to predict using the previously trained model
+- Copy the trained model file from `ML/models_bakup/{model_type}_{target}.pkl` to `ML/models/{model_type}_{target}.pkl`
+- Copy the prediction dataset from `ML/dataset_backup/prediction_dataset.csv` to `Downloads` directory.
+- Call the predict api endpoint `POST http://127.0.0.1:8001/predict?target={target}&model_type={model_type}`
+- Or can directly use thee `Predict` button in the web application in the `Performance Predictions` page.
+
+How to train a new model
+- Copy the training dataset from `ML/dataset_backup/training_dataset.csv` to `Downloads` directory.
+- Call the train api endpoint `POST http://127.0.0.1:8001/train?target={target}&model_type={model_type}`
+- Or can directly use thee `Train Model` button in the web application in the `Performance Predictions` page.
