@@ -1,7 +1,4 @@
 # RunAnalyticsSystem
-A data-driven framework for monitoring and predicting performance in 
-recreational running communities using wearable technology data
-
 Running Analytics System is a web-based platform developed to help 
 recreational runners monitor their training activities using data 
 collected from the Strava API. The system securely synchronises 
